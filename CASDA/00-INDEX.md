@@ -45,7 +45,7 @@ FID_RESULTS=${DRIVE_DATA}/fid_results
 SPLIT_RESULTS=${DRIVE_DATA}/split_experiment
 BENCHMARK_RESULTS=${DRIVE_DATA}/benchmark_results
 YOLO_DATASETS=${DRIVE_DATA}/yolo_datasets
-REFERENCE_RESULTS=${DRIVE_DATA}/casda/benchmark_results.json
+REFERENCE_RESULTS=${DRIVE_DATA}/casda/benchmark_results.json  # 사전 완료된 기준 실험 결과
 
 LOCAL_IMAGES=/content/dataset_local/train_images
 ```
@@ -66,7 +66,7 @@ Stage A (CPU) → Stage B (GPU) → Stage C (CPU) → Stage D (GPU)
 | [[03-Pipeline-StageB]] | ControlNet 학습, 검증, 이미지 생성 | Stage B 작업·디버깅 시 |
 | [[04-Pipeline-StageC]] | Poisson Blending, 품질 점수, 검증 | Stage C 작업·디버깅 시 |
 | [[05-Pipeline-StageD]] | FID, 벤치마크, 통계 검정 | Stage D 작업·디버깅 시 |
-| [[06-Scripts-Reference]] | 전체 스크립트 입출력 표 | 코드 수정·파라미터 확인 시 |
+| [[06-Scripts-Reference]] | 파이프라인 핵심 14개 스크립트 입출력 표 | 코드 수정·파라미터 확인 시 |
 | [[07-Models]] | YOLO-MFD, EB-YOLOv8, DeepLabV3+ | 모델 구조 파악·수정 시 |
 | [[08-Dataset-Groups]] | Severstal, 7개 실험 그룹, 평가 지표 | 데이터셋·그룹 구성 파악 시 |
 | [[09-Experiments]] | 완료된 실험 결과, 새 실험 템플릿 | 실험 기록·계획 시 |
@@ -81,4 +81,4 @@ Stage A (CPU) → Stage B (GPU) → Stage C (CPU) → Stage D (GPU)
 |------|------|------|
 | README.md | `/content/CASDA/README.md` | 전체 프로젝트 문서 |
 | QUICKSTART.md | `/content/CASDA/QUICKSTART.md` | 단계별 실행 가이드 |
-| benchmark_experiment.yaml | `configs/benchmark_experiment.yaml` | 실험 설정 |
+| benchmark_experiment.yaml | `/content/CASDA/configs/benchmark_experiment.yaml` | 실험 설정 |
