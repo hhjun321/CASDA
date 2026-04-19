@@ -1,0 +1,230 @@
+{
+  "main": {
+    "id": "645abbffb4513fab",
+    "type": "split",
+    "children": [
+      {
+        "id": "d236d4b50d53e386",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1751690ac3e9e0e9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "환영합니다!.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "환영합니다!"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e6973bd9a163e927",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ae74c16050381b49",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "02-Pipeline-StageA.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "02-Pipeline-StageA"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "f3b5859949eb7369",
+    "type": "split",
+    "children": [
+      {
+        "id": "2430d0dca8a2af3e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1a75ed274633d3b8",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "파일 탐색기"
+            }
+          },
+          {
+            "id": "50638881a93405c3",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "검색"
+            }
+          },
+          {
+            "id": "ea4dea25aa1fabbe",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "북마크"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "b2c723d80fc1465f",
+    "type": "split",
+    "children": [
+      {
+        "id": "32f4dc98bf6d8312",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4f01aef0cd0e9f9d",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "02-Pipeline-StageA.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "02-Pipeline-StageA 의 백링크"
+            }
+          },
+          {
+            "id": "d84642e9dafdd519",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "02-Pipeline-StageA.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "02-Pipeline-StageA 의 나가는 링크"
+            }
+          },
+          {
+            "id": "543c9f7688f648f1",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "태그"
+            }
+          },
+          {
+            "id": "83f8ddf54fd9628a",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "모든 속성"
+            }
+          },
+          {
+            "id": "02d07b5ca84fd369",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "02-Pipeline-StageA.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "02-Pipeline-StageA 의 개요"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:빠른 전환기 열기": false,
+      "graph:그래프 뷰 열기": false,
+      "canvas:새 캔버스 만들기": false,
+      "daily-notes:오늘의 일일 노트 열기": false,
+      "templates:템플릿 삽입": false,
+      "command-palette:명령어 팔레트 열기": false,
+      "bases:새 베이스 생성하기": false
+    }
+  },
+  "active": "ae74c16050381b49",
+  "lastOpenFiles": [
+    "09-Experiments.md",
+    "09-Experiments.md.tmp.22840.1776605376551",
+    "08-Dataset-Groups.md",
+    "08-Dataset-Groups.md.tmp.22840.1776605363350",
+    "07-Models.md",
+    "07-Models.md.tmp.22840.1776605347933",
+    "06-Scripts-Reference.md",
+    "06-Scripts-Reference.md.tmp.22840.1776605335180",
+    "05-Pipeline-StageD.md",
+    "05-Pipeline-StageD.md.tmp.22840.1776605319775",
+    "00-INDEX.md",
+    "환영합니다!.md",
+    "04-Pipeline-StageC.md",
+    "04-Pipeline-StageC.md.tmp.22840.1776605164362",
+    "03-Pipeline-StageB.md",
+    "03-Pipeline-StageB.md.tmp.22840.1776605146818",
+    "02-Pipeline-StageA.md",
+    "02-Pipeline-StageA.md.tmp.22840.1776605128089",
+    "01-Overview.md",
+    "01-Overview.md.tmp.22840.1776605012722",
+    "00-INDEX.md.tmp.22840.1776604969658"
+  ]
+}
