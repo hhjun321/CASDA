@@ -59,17 +59,17 @@ Stage A (CPU) → Stage B (GPU) → Stage C (CPU) → Stage D (GPU)
 
 ## 노트 맵
 
-| 노트 | 내용 | Claude 활용 시점 |
-|------|------|-----------------|
-| [[01-Overview]] | 전체 아키텍처, Abstract, Highlights | 프로젝트 첫 파악 시 |
-| [[02-Pipeline-StageA]] | ROI 추출, ControlNet 데이터 준비 | Stage A 작업·디버깅 시 |
-| [[03-Pipeline-StageB]] | ControlNet 학습, 검증, 이미지 생성 | Stage B 작업·디버깅 시 |
-| [[04-Pipeline-StageC]] | Poisson Blending, 품질 점수, 검증 | Stage C 작업·디버깅 시 |
-| [[05-Pipeline-StageD]] | FID, 벤치마크, 통계 검정 | Stage D 작업·디버깅 시 |
-| [[06-Scripts-Reference]] | 파이프라인 핵심 14개 스크립트 입출력 표 | 코드 수정·파라미터 확인 시 |
-| [[07-Models]] | YOLO-MFD, EB-YOLOv8, DeepLabV3+ | 모델 구조 파악·수정 시 |
-| [[08-Dataset-Groups]] | Severstal, 7개 실험 그룹, 평가 지표 | 데이터셋·그룹 구성 파악 시 |
-| [[09-Experiments]] | 완료된 실험 결과, 새 실험 템플릿 | 실험 기록·계획 시 |
+| 노트                       | 내용                              | Claude 활용 시점     |
+| ------------------------ | ------------------------------- | ---------------- |
+| [[01-Overview]]          | 전체 아키텍처, Abstract, Highlights   | 프로젝트 첫 파악 시      |
+| [[02-Pipeline-StageA]]   | ROI 추출, ControlNet 데이터 준비       | Stage A 작업·디버깅 시 |
+| [[03-Pipeline-StageB]]   | ControlNet 학습, 검증, 이미지 생성       | Stage B 작업·디버깅 시 |
+| [[04-Pipeline-StageC]]   | Poisson Blending, 품질 점수, 검증     | Stage C 작업·디버깅 시 |
+| [[05-Pipeline-StageD]]   | FID, 벤치마크, 통계 검정                | Stage D 작업·디버깅 시 |
+| [[06-Scripts-Reference]] | 파이프라인 핵심 14개 스크립트 입출력 표         | 코드 수정·파라미터 확인 시  |
+| [[07-Models]]            | YOLO-MFD, EB-YOLOv8, DeepLabV3+ | 모델 구조 파악·수정 시    |
+| [[08-Dataset-Groups]]    | Severstal, 7개 실험 그룹, 평가 지표      | 데이터셋·그룹 구성 파악 시  |
+| [[09-Experiments]]       | 완료된 실험 결과, 새 실험 템플릿             | 실험 기록·계획 시       |
 
 ## 완료된 실험
 
