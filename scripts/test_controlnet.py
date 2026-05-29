@@ -627,6 +627,11 @@ def parse_args():
              '--num_images_per_sample은 fallback으로 사용. '
              '예: --num_images_per_class \'{"1":2,"2":10,"3":1,"4":2}\'',
     )
+    parser.add_argument(
+        "--config", type=str, default=None,
+        help="Stage 0 recommended_config.yaml 경로 ($ANALYSIS_CONFIG). "
+             "우선순위: CLI --num_images_per_class > config > 없음",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--resolution", type=int, default=512,
@@ -673,6 +678,21 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    # CLI > config > 없음 우선순위로 num_images_per_class 결정
+    if args.num_images_per_class is None and args.config:
+        try:
+            from src.utils.config_loader import load_recommended_config
+            cfg = load_recommended_config(args.config)
+            num_map = cfg.get('pipeline_parameters', {}).get('num_images_per_class', {})
+            if num_map:
+                args.num_images_per_class = json.dumps(
+                    {str(k): int(v) for k, v in num_map.items()}
+                )
+                logger.info(f"num_images_per_class from config: {args.num_images_per_class}")
+        except Exception as e:
+            logger.warning(f"config 로드 실패, 기본값 사용: {e}")
+
     device = torch.device(args.device)
 
     logger.info("=" * 60)
