@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python:*)",
       "Bash(pip install:*)",
-      "mcp__claude_ai_PDF_Viewer__display_pdf"
+      "mcp__claude_ai_PDF_Viewer__display_pdf",
+      "Bash(dir *)",
+      "PowerShell(Head *)"
     ]
   },
   "hooks": {
@@ -16,9 +18,7 @@
             "command": "node \"$(git rev-parse --show-toplevel)/.claude/scripts/session-logger.js\"",
             "timeout": 15
           }
-        ],
-        "description": "Save human-readable session log to .claude/session-logs/",
-        "id": "stop:session-logger"
+        ]
       }
     ]
   }
