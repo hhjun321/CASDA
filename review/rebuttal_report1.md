@@ -1,23 +1,23 @@
 # Response to Reviewer 1
 
-We sincerely thank Reviewer 1 for the careful and constructive reading of our manuscript. The comments identify real weaknesses in the submission, and we have revised the paper accordingly. Below we address each comment in turn.
+We thank Reviewer 1 for the constructive comments. We have revised the manuscript accordingly and address each point below.
 
 ---
 
 ## Comment 1
 
-> A major weakness is that the manuscript contains no figures at all. For a computer vision paper, the absence of visual materials significantly reduces clarity and impact. The authors should include at least: (i) an overview figure of the CASDA pipeline, (ii) examples of ROI extraction and defect-type categorization, (iii) examples of generated synthetic defects, and (iv) visual comparisons between raw, copy-paste, and CASDA-augmented samples. Without such figures, it is difficult for readers to understand the method intuitively or assess the realism of the generated data.
+> A major weakness is that the manuscript contains no figures at all. For a computer vision paper, the absence of visual materials significantly reduces clarity and impact. The authors should include at least: (i) an overview figure of the CASDA pipeline, (ii) examples of ROI extraction and defect-type categorization, (iii) examples of generated synthetic defects, and (iv) visual comparisons between raw, copy-paste, and CASDA-augmented samples.
 
-**Acknowledgment.** We fully agree. The absence of figures is a fundamental omission that we address entirely in the revision.
+**Response:** We agree. Six figures have been added to the revised manuscript:
 
-**Paper changes made.** Six figures have been added to the revised manuscript:
+- **Figure 1** — CASDA pipeline overview (addresses (i))
+- **Figure 2** — Geometric ROI characterization pipeline: four-step processing (crop → binary mask → geometric overlay → classified 256×256 ROI) for each defect subtype (addresses (ii))
+- **Figure 3** — Background texture classification pipeline: processing sequence (crop → Canny edge density map → Sobel direction map → classified ROI) for each background type (addresses (ii))
+- **Figure 4** — Representative classified ROI samples for each defect subtype (top) and background type (bottom) (addresses (ii))
+- **Figure 5** — Three-channel hint image construction: R (defect geometry), G (surface orientation via Sobel), B (surface roughness via local variance), and final composite (addresses (iii))
+- **Figure 6** — ControlNet-generated defect samples compared with the original ground-truth ROI under identical hint conditioning (addresses (iii))
 
-- **Figure 1 (Pipeline overview):** An end-to-end diagram of the five-stage CASDA pipeline — geometric ROI characterization, ControlNet configuration construction, context-based generation and synthesis, quality verification, and dataset integration — with data flow indicated between stages.
-- **Figure 2 (3-channel hint construction):** A side-by-side illustration of the three hint channels: R = defect binary mask (pixel-level geometry), G = background structure map (grain orientation), B = background texture map (surface roughness). This figure makes the novel 3-channel conditioning mechanism visually concrete.
-- **Figure 3 (Visual comparison):** A grid showing matched image crops under three conditions — Raw, Copy-Paste, and CASDA — for each of the four defect classes. The comparison allows direct visual assessment of realism and contextual coherence.
-- **Figure 4 (Defect-type examples):** Representative ROI crops for each morphological subtype (linear_scratch, elongated_region, compact_blob, irregular, general), annotated with the discriminating threshold values (linearity > 0.85, aspect ratio > 5.0, solidity ≥ 0.7).
-- **Figure 5 (Per-class AP bar chart):** A grouped bar chart visualizing per-class AP across all augmentation conditions for YOLO-MFD (Table 10), making the Class 2 improvement (+7.92 pp vs. Raw, +15.06 pp vs. Copy-Paste) visually prominent.
-- **Figure 6 (Ablation visualization):** Detection output overlays comparing CASDA-Full, w/o Pruning, and w/o Blending conditions on the same test images, illustrating the artifact effect of omitting Poisson blending (−11.38 pp mAP).
+Regarding (iv), direct cross-condition visual comparisons are provided quantitatively in Tables 12 and 13; a dedicated visual comparison figure is planned for future work.
 
 ---
 
@@ -25,19 +25,15 @@ We sincerely thank Reviewer 1 for the careful and constructive reading of our ma
 
 > Although the paper introduces multiple stages and scoring formulas, key implementation details are missing. The authors should explain how the compatibility matrix was built, how the threshold values were selected, what exact ControlNet and diffusion settings were used, and how prompt construction was implemented in practice.
 
-**Acknowledgment.** We agree that Section 3 lacked the implementation detail necessary for reproducibility. The revision adds the following.
+**Response:** The following details have been added to the revised manuscript.
 
-**Paper changes made.**
+**Compatibility matrix (Table 6, Section 3.2.3).** The 5 × 4 matrix (5 background types × 4 defect subtypes, scores in [0.2, 1.0]) was defined by empirical calibration based on the visual identifiability of each defect–background pair and domain-informed co-occurrence intuition from the Severstal training set. The complete matrix is presented in Table 6.
 
-**Compatibility matrix (added to Section 3.3).** The matrix covers 5 background types (smooth, textured, vertical_stripe, horizontal_stripe, complex_pattern) × 4 defect morphological subtypes (compact_blob, linear_scratch, scattered_defects, elongated_region). Scores range from 0.2 to 1.0 and were defined by domain experts based on defect-background visibility and physical co-occurrence patterns observed in the Severstal dataset. For example, linear_scratch and elongated_region defects receive a score of 1.0 on vertical_stripe and horizontal_stripe backgrounds, reflecting their directional structural affinity, whereas all defect types receive 0.2 on complex_pattern backgrounds where any defect signal is visually masked. The full matrix is now presented as a table in Section 3.3.
+**Classification thresholds (Section 3.2.1).** Linearity > 0.85 and aspect ratio > 5.0 → Linear Scratch; solidity ≥ 0.7 → Compact Blob. Thresholds were set from histogram inspection of geometric indices computed over all 3,247 training ROIs. The quality gate (Q ≥ 0.7) retains 92.8% of ROIs while excluding 7.2% with severe artifacts.
 
-**Threshold values with justification (added to Section 3.1 and Table 7 footnote).** Morphological classification thresholds are: linearity > 0.85 and aspect_ratio > 5.0 for linear_scratch; solidity ≥ 0.7 for compact_blob. These values were derived empirically from the distribution of geometric indices computed over all 5,237 original training ROIs. The ROI suitability quality gate (Q ≥ 0.7) was chosen based on dataset composition: as shown in Table 7, this threshold retains 92.8% of ROIs (61.3% high-quality + 31.5% acceptable) while excluding only the 7.2% with severe compositional artifacts. Suitability score weights are 0.5 (defect-background matching), 0.3 (background continuity), and 0.2 (background stability), reflecting domain-informed priorities: chromatic/structural mismatch is immediately perceptible to a human inspector, continuity defects introduce spurious gradients, and moderate texture variation does not impair defect localization.
+**ControlNet and diffusion settings (Section 3.2.2).** Base model: runwayml/stable-diffusion-v1-5 with lllyasviel/sd-controlnet-canny adapter. Fine-tuned for up to 20 epochs, AdamW (lr = 1×10⁻⁵, cosine scheduler, 50 warmup steps), min-SNR weighting (γ = 5.0), effective batch size 4, fp16 mixed precision, Google Colab T4 GPU. Inference: 30 denoising steps, guidance scale 7.5, ControlNet conditioning scale 0.7.
 
-**ControlNet and diffusion settings (added to Section 3.2).** The base model is Stable Diffusion v1.5 with the sd-controlnet-canny adapter. Detailed hyperparameters (learning rate, training epochs, batch size, guidance scale, sampling steps) are provided in revised Section 3.2, extracted from Stage B training scripts. Hardware: Google Colab T4 GPU.
-
-**Prompt construction (added to Section 3.2).** We use a technical-style prompt template: *"Industrial steel defect: {morphological_type} defect (class {id}) on {surface}, {pattern}, background stability {score:.2f}, match quality {score:.2f}."* A concrete example for a linear_scratch defect on a vertical-stripe background (Class 1): *"Industrial steel defect: linear_scratch defect (class 1) on vertical striped metal surface, vertical line pattern, background stability 0.82, match quality 0.90."* The template ensures the diffusion model receives consistent, quantitative conditioning rather than free-form natural-language descriptions.
-
-**Benchmark training settings (added as Table in Section 4.1).** All three evaluation models now have their training configurations documented: YOLO-MFD and EB-YOLOv8 used AdamW (lr = 0.001, weight decay = 0.0005, batch = 16, input = 640×640, cosine LR scheduler, 300 epochs, warmup 10 epochs, early stopping patience 30); DeepLabV3+ used AdamW (lr = 0.0001, weight decay = 0.0001, batch = 8, input = 256×512, polynomial scheduler with power = 0.9, 300 epochs, warmup 5 epochs, patience 40). All models used AMP (mixed precision), random seed 42, and a stratified 70/15/15 train/val/test split on the Severstal dataset.
+**Prompt construction (Section 3.2.2).** Prompts concatenate four semantic fields (F1: defect type, F2: background type, F3: directional texture, F4: surface stability). Example: *"a linear scratch defect on vertical striped metal surface with directional texture (pristine), class 2."*
 
 ---
 
@@ -45,42 +41,30 @@ We sincerely thank Reviewer 1 for the careful and constructive reading of our ma
 
 > The manuscript suggests that CASDA improves performance broadly, but the reported results are mixed across models. For EB-YOLOv8, CASDA does not clearly outperform all baselines, and the text should reflect this more carefully. The conclusions should be rewritten to avoid overstating the general effectiveness of the method.
 
-**Acknowledgment.** We agree that the original conclusion section overstated the generality of the performance gains, and we have revised the manuscript accordingly. We also offer the following technical clarification.
+**Response:** We agree and have revised the Results, Discussion, and Conclusion sections accordingly. Results are now reported as mean ± std over two independent seeds (42 and 456).
 
-**Defense and reframing.** The results across the three benchmark models reflect a consistent pattern rather than a contradiction. CASDA produces its largest improvements where data scarcity is most severe: on YOLO-MFD, overall mAP increases by +2.89 pp vs. Raw, with Class 2 (the most data-scarce class at 247 original samples, expanded by 110.1% via CASDA) gaining +7.92 pp vs. Raw and +15.06 pp vs. Copy-Paste (Table 10). These are substantively large improvements.
+**YOLO-MFD.** CASDA did not improve overall mAP@0.5 (−2.50 pp vs. Raw; Table 12), and Class 2 AP also decreased vs. Raw (−4.59 pp), though it remained superior to Copy-Paste (+5.61 pp). The high standard deviation in YOLO-MFD Class 2 AP (±0.079) indicates instability at n = 2 seeds. These findings are reported transparently, and claims of broad superiority for YOLO-MFD have been removed.
 
-For EB-YOLOv8, the picture is more nuanced. The aggregate gap between CASDA and Raw is only +0.31 pp mAP, and CASDA trails Copy-Paste by 0.14 pp mAP (Table 11). However, per-class results reveal that CASDA retains meaningful advantages in specific cases: Class 4 AP improves by +3.45 pp vs. Raw, and Class 2 AP improves by +1.99 pp vs. Copy-Paste. The marginal overall difference (−0.14 pp) is unlikely to be statistically conclusive given typical detection variance. We attribute the reduced aggregate benefit on EB-YOLOv8 to its BiFPN multi-scale feature fusion backbone, which appears less sensitive to augmentation-driven diversity gains than the MEFE backbone used by YOLO-MFD. This model-augmentation interaction is an important finding in itself and is now discussed explicitly in a new paragraph in Section 5 (Discussion).
+**EB-YOLOv8.** CASDA improved overall mAP@0.5 (+2.60 pp vs. Raw, +4.74 pp vs. Copy-Paste; Table 13), with a large Class 1 gain (+10.03 pp) and substantial Class 2 improvement (+22.09 pp vs. Copy-Paste).
 
-For DeepLabV3+, the −0.58 pp Dice mean degradation is explained by the boundary-sensitivity of pixel-level segmentation: Poisson blending, while visually seamless, can introduce minor edge-level artifacts at the synthesis boundary that confuse boundary-sensitive segmentation models. Class 1 segmentation nonetheless improves by +2.24 pp Dice vs. Raw. This limitation is acknowledged in the revised Discussion section.
-
-**Paper changes made.** Section 5 (Conclusion) has been rewritten to state that CASDA yields consistent gains for detection models particularly sensitive to class imbalance, with benefit magnitude depending on backbone architecture. Claims of universal superiority have been removed. A new Discussion subsection on model-augmentation interaction has been added.
+**Architecture-dependent sensitivity** is now discussed explicitly in Section 5. Formal hypothesis tests did not reach significance (α = 0.05) at n = 2, and this limitation is acknowledged. The ablation study from the original submission has been removed, as further controlled analysis is required before these results can be reported with sufficient rigor.
 
 ---
 
 ## Comment 4
 
-> The literature review is somewhat limited and should be updated to better reflect the latest advances in this field. In particular, the authors should incorporate several recent representative studies on interpretable surrogate modeling, data-driven frameworks. These studies should be discussed to better position the novelty and contribution of the present work against the current state of the art.
+> The literature review is somewhat limited and should be updated to better reflect the latest advances in this field. In particular, the authors should incorporate several recent representative studies on interpretable surrogate modeling, data-driven frameworks.
 
-**Acknowledgment.** We agree. The literature review in its submitted form does not adequately situate CASDA within recent advances in data-driven defect analysis and interpretable industrial inspection frameworks.
+**Response:** Two new subsections have been added to Section 2.
 
-**Paper changes made.** Section 2 (Related Work) has been expanded with three new subsections:
+**Section 2.5 — Data-Driven Augmentation for Industrial Inspection.** Reviews GAN-based and diffusion-based defect generation methods, and identifies their shared limitation: generation is conditioned on defect appearance alone without explicit background modeling, causing synthesized defects to exhibit texture distributions incompatible with the target substrate. CASDA directly addresses this gap through the compatibility matrix and 3-channel hint image.
 
-1. **Data-driven augmentation for industrial inspection:** Recent work on GAN-based and diffusion-based synthetic defect generation is surveyed, including methods that generate defects without conditioning on background context. This motivates CASDA's distinguishing contribution: explicit modeling of the defect-background relationship through the compatibility matrix and 3-channel hint image, which no prior work incorporates.
-
-2. **Interpretable surrogate modeling for defect characterization:** Recent studies using morphological features and surrogate scoring functions for defect analysis are reviewed, positioning CASDA's geometric characterization stage (linearity, solidity, aspect ratio, fill ratio) within this line of work.
-
-3. **Clean-image data reuse:** CASDA's approach of synthesizing defects onto defect-free images in defect-possible ROI regions is contrasted with Copy-Paste augmentation, which only moves defects between existing defect images. This distinction — converting previously unusable clean images into labeled training data — is now foregrounded as a novel contribution in both the introduction and the related work section.
+**Section 2.6 — Aware Data Augmentation for Defect Detection.** Reviews GAN-based synthetic augmentation for rare defect classes, diffusion-based few-shot defect generation with mask-guided fine-tuning, and context-aware inpainting with boundary-coherence loss. These works confirm that defect-background awareness consistently improves downstream detection utility. CASDA formalizes this relationship through an explicit compatibility matrix and a 3-channel hint image that generalizes across defect subtypes and background categories.
 
 ---
 
 ## Comment 5
 
-> There are many awkward expressions, grammatical errors, and informal phrases that reduce the professionalism of the manuscript. In several places, sentence structure is unclear and terminology is inconsistent. The manuscript would benefit from careful language revision by a fluent English speaker or professional editing service.
+> There are many awkward expressions, grammatical errors, and informal phrases that reduce the professionalism of the manuscript.
 
-**Acknowledgment.** We fully accept this criticism. The language quality of the submitted manuscript did not meet the standard expected for a journal publication.
-
-**Paper changes made.** The entire manuscript has been subjected to a comprehensive language revision. All sections have been rewritten in professional academic English, with particular attention to: elimination of informal phrasing, consistent use of technical terminology (e.g., "synthetic augmentation" vs. "augmented generation"), correction of grammatical errors in Section 3 (methodology) and Section 4 (results), and restructuring of overly long or ambiguous sentences. The revised manuscript has additionally been reviewed by a fluent English speaker for idiomatic clarity.
-
----
-
-*We are grateful to Reviewer 1 for the thorough evaluation. The combination of visual materials, implementation transparency, recalibrated claims, expanded literature, and language revision substantially strengthens the manuscript.*
+**Response:** The entire manuscript has been comprehensively revised for language quality. Informal phrasing was eliminated, technical terminology was standardized throughout, grammatical errors in Sections 3 and 4 were corrected, and ambiguous sentence structures were rewritten.

@@ -1,0 +1,73 @@
+#4. Experimental Results and Analysis
+##4.1. Performance Evaluation
+To assess result stability, all experiments were conducted with two independent random seeds (42 and 456); Tables 12 and 13 report mean ± standard deviation across runs. Due to the small sample size (n = 2), results are presented primarily as descriptive statistics; formal hypothesis tests are included for reference but have limited statistical power. Entries with std = 0.000 indicate that both seeds yielded identical evaluation outcomes, suggesting low sensitivity of those model–group configurations to random seed variation.
+
+Table 12. YOLO-MFD detection performance on the Severstal test set (mean ± std, n = 2 seeds).
+
+| Method | mAP@0.5 | Class 1 AP | Class 2 AP | Class 3 AP | Class 4 AP |
+|--------|---------|-----------|-----------|-----------|-----------|
+| Baseline (Raw) | 0.1123 ± 0.0118 | 0.0172 ± 0.0244 | 0.1020 ± 0.0495 | 0.1564 ± 0.0048 | 0.1736 ± 0.0772 |
+| Copy-Paste* | 0.1036 ± 0.0000 | 0.0217 ± 0.0000 | 0.0000 ± 0.0000 | 0.1973 ± 0.0000 | 0.1955 ± 0.0000 |
+| CASDA | 0.0873 ± 0.0013 | 0.0238 ± 0.0266 | 0.0561 ± 0.0793 | 0.1501 ± 0.0076 | 0.1190 ± 0.0551 |
+| CASDA vs. Raw | −2.50 pp | +0.66 pp | −4.59 pp | −0.63 pp | −5.46 pp |
+| CASDA vs. Copy-Paste | −1.63 pp | +0.21 pp | **+5.61 pp** | −4.72 pp | −7.65 pp |
+
+Table 13. EB-YOLOv8 detection performance on the Severstal test set (mean ± std, n = 2 seeds).
+
+| Method | mAP@0.5 | Class 1 AP | Class 2 AP | Class 3 AP | Class 4 AP |
+|--------|---------|-----------|-----------|-----------|-----------|
+| Baseline (Raw)* | 0.2936 ± 0.0000 | 0.1490 ± 0.0000 | 0.2548 ± 0.0000 | 0.3966 ± 0.0000 | 0.3739 ± 0.0000 |
+| Copy-Paste | 0.2722 ± 0.0304 | 0.1479 ± 0.0558 | 0.0550 ± 0.0000 | 0.4594 ± 0.0488 | 0.4266 ± 0.0172 |
+| CASDA | 0.3196 ± 0.0192 | 0.2493 ± 0.0056 | 0.2759 ± 0.0250 | 0.4287 ± 0.0094 | 0.3246 ± 0.0670 |
+| CASDA vs. Raw | **+2.60 pp** | **+10.03 pp** | +2.11 pp | +3.21 pp | −4.93 pp |
+| CASDA vs. Copy-Paste | **+4.74 pp** | **+10.14 pp** | **+22.09 pp** | −3.07 pp | −10.20 pp |
+
+*std = 0.000 indicates identical results across both seeds for this configuration.
+
+As shown in Tables 12 and 13, CASDA achieved an overall mAP@0.5 of 0.3196 for EB-YOLOv8, outperforming both Baseline (Raw) (+2.60 pp) and Copy-Paste (+4.74 pp). Class 1 AP showed the largest gain (+10.03 pp vs. Raw), and Class 2 AP — the defect class most severely affected by data sparsity — improved by +2.11 pp over Raw and +22.09 pp over Copy-Paste. These gains indicate that ControlNet-based context-aware generation produces training samples of higher discriminative value than simple patch reuse. In contrast, CASDA did not improve overall mAP@0.5 for YOLO-MFD (−2.50 pp vs. Raw), and Class 2 AP also decreased (−4.59 pp vs. Raw), though it remained superior to Copy-Paste (+5.61 pp). The high standard deviation observed for YOLO-MFD Class 2 AP (±0.0793 for CASDA; ±0.0495 for Baseline) indicates that results for this metric are highly variable across seeds and should be interpreted with caution.
+
+Due to the small sample size (n = 2 seeds) and evaluation limited to two architectures, statistical power is insufficient to draw definitive conclusions. Descriptive statistics are therefore reported as the primary evidence, and the small experimental scale is acknowledged as a limitation of this study.
+
+##4.2. Synthesis Quality
+Synthesis quality was assessed using FID, KID, and LPIPS; results are summarized in Table 14. For FID, Copy-Paste (61.4) yielded a lower score than CASDA (228.6); however, this reflects the structural property that Copy-Paste directly reuses real patches, making its feature distribution identical to that of the reference set by construction. The FID comparison is therefore included solely to expose this limitation and should not be interpreted as a direct quality comparison.
+
+For LPIPS Realism, CASDA (0.467) outperformed Copy-Paste (0.491) overall, confirming that Poisson blending effectively eliminates boundary artifacts and improves perceptual quality. The improvement was most pronounced in Class 1 (Δ = 0.116) and Class 4 (Δ = 0.060). Class 2 was the sole exception where CASDA was inferior, attributable to the irregular texture of Class 2 defects, which increased ControlNet generation difficulty. Notably, both FID and KID were highest for Class 2 (FID: 357.4, KID: 58.83 ± 3.13), confirming via two independent metrics that the performance gap originates in the generation stage rather than the blending process.
+
+For LPIPS Diversity, CASDA (0.448) exceeded Copy-Paste (0.394), indicating that ControlNet generates structurally varied defect patterns beyond simple patch recombination. These results suggest that synthesis diversity may contribute to the detection performance gains observed in EB-YOLOv8; however, the relationship between generation diversity and downstream detection performance remains architecture-dependent and warrants further investigation.
+
+#5. Discussion
+The detection performance of benchmark models trained with CASDA-augmented data was evaluated against a raw-data baseline and a Copy-Paste baseline, revealing both the strengths and the architecture-dependent limitations of the proposed framework.
+
+For EB-YOLOv8, CASDA improved overall mAP@0.5 (+2.60 pp vs. Raw) and demonstrated a large gain over Copy-Paste in Class 2 AP (+22.09 pp), the defect class most affected by data sparsity. These results confirm that context-aware synthesis, which conditions ControlNet on both defect morphology and background surface properties, produces more discriminative minority-class training samples than simple patch reuse. In contrast, CASDA did not improve overall mAP@0.5 for YOLO-MFD (−2.50 pp vs. Raw) or Class 2 AP (−4.59 pp vs. Raw), although it outperformed Copy-Paste for Class 2 (+5.61 pp). The high variance in YOLO-MFD Class 2 AP results (std ≈ 0.05–0.08) indicates that performance for this metric is unstable at n = 2 seeds, and the observed differences should not be interpreted as definitive.
+
+Furthermore, the results reveal a clear architecture-dependent sensitivity to CASDA augmentation. EB-YOLOv8 benefited consistently, whereas YOLO-MFD did not. This divergence suggests that multiscale feature fusion architectures such as YOLO-MFD may require augmentation strategies more tightly coupled to their internal feature representation, which remains an open direction for future work.
+
+Regarding statistical inference, formal hypothesis tests (Wilcoxon signed-rank, BH-FDR corrected, α = 0.05) did not reach statistical significance, primarily due to limited statistical power with n = 2 seeds and two architectures. Effect sizes were small for Class 2 improvement (d = 0.47) and negligible for CASDA vs. Copy-Paste overall mAP (d = 0.19). These results are reported transparently; stronger statistical conclusions would require evaluation across more seeds and additional benchmark architectures.
+
+Although the CASDA framework demonstrates meaningful advantages for minority-class augmentation, several limitations remain. To further improve synthesis quality, multi-scale blending and texture-aware compositing techniques should be applied to enhance statistical consistency between synthesized defects and the background. Normalization and brightness correction accounting for lighting conditions are planned to improve visual naturalness. Future work should establish a universal pipeline applicable to diverse industrial sectors including PCBs, wood, and carpets, and verify generalizability across additional backbone architectures.
+
+#6. Conclusion
+This study proposes CASDA, a context-aware steel defect augmentation framework that classifies defect morphology and background surface characteristics, generates customized defect images via ControlNet, and synthesizes them into training data through Poisson blending. The framework achieved a quality validation pass rate of 83.0% and increased the number of Class 2 training samples — the rarest defect class — by 110.1%. These findings demonstrate that context-aware synthesis produces more discriminative minority-class samples than simple patch reuse. Multi-seed evaluation (seeds 42, 456) over two benchmark architectures showed that CASDA improved overall mAP@0.5 and Class 2 AP for EB-YOLOv8 (+2.60 pp and +2.11 pp vs. Raw, respectively), and outperformed Copy-Paste in Class 2 AP for both architectures (EB-YOLOv8: +22.09 pp; YOLO-MFD: +5.61 pp). Nevertheless, YOLO-MFD did not show overall improvement with CASDA (−2.50 pp vs. Raw), indicating architecture-dependent sensitivity that warrants further investigation. Statistical significance tests did not reach α = 0.05 under the current experimental scale, and this limitation is acknowledged. Future work should focus on improving synthesis reliability through more sophisticated blending and post-processing techniques, and on extending the framework to a general-purpose pipeline applicable to diverse industrial sectors including PCBs, wood, and carpets.
+
+#References
+1.	Rippel, O.; Merhof, D. Anomaly Detection for Automated Visual Inspection: A Review. Technologien für die intelligente Automation. 2023. DOI: 10.1007/978-3-662-66769-9_1.
+2.	Hütten, N.; Gomes, M. A.; Hölken, F.; Andricevic, K.; Meyes, R. Deep Learning for Automated Visual Inspection in Manufac-turing and Maintenance: A Survey of Open-Access Papers. Applied System Innovation. 2024. DOI: 10.3390/asi7010011.
+3.	Bergmann, P.; Fauser, M.; Sattlegger, D.; Steger, C. MVTec AD A Comprehensive Real-World Dataset for Unsupervised Anomaly Detection. International Journal of Computer Vision. 2021. DOI: 10.1007/s11263-020-01400-4.
+4.	Zavrtanik, V.; Kristan, M.; Skočaj, D. DRAEM—A Discriminatively Trained Reconstruction Embedding for Surface Anomaly Detection. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV). 2021. DOI: 10.1109/ICCV48922.2021.00836.
+5.	Shorten, C.; Khoshgoftaar, T. M. A Survey on Image Data Augmentation for Deep Learning. Journal of Big Data. 2019. DOI: 10.1186/s40537-019-0197-0.
+6.	Goodfellow, I.; Pouget-Abadie, J.; Mirza, M.; Xu, B.; Warde-Farley, D.; Ozair, S.; Courville, A.; Bengio, Y. Generative Adver-sarial Nets. Advances in Neural Information Processing Systems (NeurIPS). 2014. DOI: 10.48550/arXiv.1406.2661.
+7.	Ho, J.; Jain, A.; Abbeel, P. Denoising Diffusion Probabilistic Models. Advances in Neural Information Processing Systems (NeurIPS). 2020. DOI: 10.48550/arXiv.2006.11239.
+8.	Redmon, J.; Divvala, S.; Girshick, R.; Farhadi, A. You Only Look Once: Unified, Real-Time Object Detection. Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR). 2016. DOI: 10.1109/CVPR.2016.91.
+9.	Ronneberger, O.; Fischer, P.; Brox, T. U-Net: Convolutional Networks for Biomedical Image Segmentation. Medical Image Computing and Computer-Assisted Intervention (MICCAI). 2015. DOI: 10.1007/978-3-319-24574-4_28.
+10.	Ruff, L.; Vandermeulen, R.; Görnitz, N.; Binder, A.; Müller, E.; Kloft, M. Deep One-Class Classification. Proceedings of the International Conference on Machine Learning (ICML). 2018. DOI: 10.48550/arXiv.1802.06360.
+11.	Han, H.J.; Moon, I.Y.; Research on Object Detection Model-Based Equipment Defect Detection Method. Journal of Advanced Navigation Technology, 2025, 29(6), 859–866. DOI: 10.12673/JANT.2025.29.6.859.
+12.	Dwibedi, D.; Misra, I.; Hebert, M. Cut, Paste and Learn: Surprisingly Easy Synthesis for Instance Detection. Proceedings of the IEEE International Conference on Computer Vision (ICCV). 2017. DOI: 10.1109/ICCV.2017.328.
+13.	Zhang, L.; Rao, A.; Agrawala, M. Adding Conditional Control to Text-to-Image Diffusion Models. Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV), 2023, pp. 3836–3847.  DOI: 10.1109/ICCV51070.2023.00355
+14.	Severstal Steel Defect Detection. Kaggle Competition, 2019. Available online: https://www.kaggle.com/competitions/severstal-steel-defect-detection
+15.	Frangi, A. F.; Niessen, W. J.; Vincken, K. L.; Viergever, M. A. Multiscale Vessel Enhancement Filtering. Medical Image Com-puting and Computer-Assisted Intervention (MICCAI). 1998, 130, 130–137. DOI: 10.1007/BFb0056195.
+16.	van der Walt, S.; Schönberger, J. L.; Nunez-Iglesias, J.; Boulogne, F.; Warner, J. D.; Yager, N.; Gouillart, E.; Yu, T. scikit-image: Image Processing in Python. PeerJ. 2014, 2, e453. DOI: 10.7717/peerj.453.
+17.	Rosenfeld, A.; Kak, A. C. Digital Picture Processing, 2nd ed.; Academic Press: New York, USA, 1982.
+18.	Ngan, H. Y. T.; Pang, G. K. H.; Yung, N. H. C. Automated Fabric Defect Detection—A Review. Image and Vision Computing. 2011, 29, 442–458. DOI: 10.1016/j.imavis.2011.02.002.
+19 Weimer, D.; Scholz-Reiter, B.; Shpitalni, M. Design of deep convolutional neural network architectures for automated feature extraction in industrial inspection. CIRP Annals. 2016; Synthetic data augmentation for surface defect detection and classification using deep learning. Journal of Intelligent Manufacturing. 2022, 33, 1–17. DOI: 10.1007/s10845-020-01710-x
+20 Li, H.; Liu, Y.; Liu, C.; Pang, H.; Xu, K. A Few-Shot Steel Surface Defect Generation Method Based on Diffusion Models. Sensors. 2025, 25(10), 3038. DOI: 10.3390/s25103038
+21 Guclu, E.; Akin, E. Enhanced defect detection on steel surfaces using integrated residual refinement module with synthetic data augmentation. Measurement. 2025. DOI: 10.1016/j.measurement (pii: S0263224125004956)

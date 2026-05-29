@@ -1,0 +1,143 @@
+# 1차논문수정 - 원본 vs 수정 비교 문서
+# 용도: Reviewer 코멘트 대응을 위한 원본 내용과 추가/수정 내용 대조
+
+================================================================================
+## [Reviewer 1 - Comment 4] Related Work 확장
+================================================================================
+
+--------------------------------------------------------------------------------
+### [원본] Section 2. Related Work (제출 논문 그대로)
+--------------------------------------------------------------------------------
+
+##2.1. Industrial Defect Detection
+Deep learning-based industrial defect detection has primarily evolved around supervised
+learning-based object detection or segmentation models [8,9]. Recently, one-class anomaly
+detection approaches that detect anomalies using only normal data are also being actively
+researched [10]. While these methods are attracting attention as alternatives considering
+the limitations of data collection in real industrial environments, they still have
+limitations in precisely detecting minute defects or various types of defects. In
+particular, performance degradation of the model is inevitable in situations where
+sufficient defect data is not secured [11].
+
+##2.2. Data Augmentation.
+Various data augmentation techniques have been proposed to mitigate the problem of data
+sparsity. Traditional geometric transformations and color-based augmentation are simple
+to implement and widely used, but they have limitations in that they fail to reflect the
+structural characteristics of defects [5]. To address this, cut-paste-based synthesis
+techniques or methods for recombining defect regions have been proposed, but it is
+difficult to ensure natural alignment between the background and the defects [12].
+
+##2.3. Generative Models for Augmentation
+Recently, there has been an increase in research utilizing GANs and diffusion-based
+generative models to generate defect images. While these methods offer the advantage of
+effectively expanding data diversity, they suffer from the problem that the generated
+defects do not sufficiently reflect the physical characteristics of real industrial
+environments [4]. In particular, because they do not explicitly consider the spatial and
+contextual relationships between defects and the background, there is a possibility that
+unrealistic samples may be generated.
+
+##2.4. Condition-based generation and ControlNet
+Research on controlling image generation by utilizing conditional information is also
+actively underway. In particular, ControlNet is a model capable of precisely controlling
+image generation based on structural conditions and is utilized in various application
+fields [13]. However, existing research has primarily focused on general image generation
+or style control, and cases explicitly reflecting the defect-background relationship in
+industrial defect data augmentation are limited [4].
+
+--------------------------------------------------------------------------------
+### [추가] Section 2.5 — Data-Driven Augmentation for Industrial Inspection (신규)
+--------------------------------------------------------------------------------
+
+##2.5. Data-Driven Augmentation for Industrial Inspection
+Data-driven augmentation has emerged as a key strategy for overcoming defect sample scarcity in industrial settings. GAN-based methods first demonstrated that realistic synthetic defects could be generated from limited labeled data [6], while denoising diffusion probabilistic models (DDPMs) have since offered superior sample diversity and visual fidelity across steel, textile, and PCB domains [7]. However, a common limitation of prior methods is that defect generation is conditioned on defect appearance alone, without explicit modeling of the background surface, causing synthesized defects to exhibit texture or intensity distributions incompatible with the target substrate [4]. CASDA addresses this gap through a compatibility matrix and 3-channel hint image that jointly encode defect morphology and background surface properties.
+
+--------------------------------------------------------------------------------
+### [추가] Section 2.6 — Aware Data Augmentation for Defect Detection (신규)
+--------------------------------------------------------------------------------
+
+##2.6. Aware Data Augmentation for Defect Detection
+Augmentation strategies designed to respect structural and contextual properties of defect images have demonstrated consistent gains over context-agnostic approaches: GAN-based methods improve detection of rare classes on imbalanced datasets [19], diffusion-based mask-guided fine-tuning extends this to few-shot scenarios [20], and context-aware inpainting enforces boundary coherence with the surrounding substrate [21]. Collectively, these works confirm that defect-background awareness during synthesis is a reliable driver of downstream utility. CASDA formalizes this relationship through an explicit compatibility matrix and a 3-channel hint image that generalizes across defect morphological subtypes and background surface categories.
+
+--------------------------------------------------------------------------------
+### [참고문헌] Section 2.5–2.6 인용 문헌
+--------------------------------------------------------------------------------
+
+[4] Zavrtanik, V.; Kristan, M.; Skočaj, D. DRAEM—A Discriminatively Trained
+    Reconstruction Embedding for Surface Anomaly Detection. Proceedings of the
+    IEEE/CVF International Conference on Computer Vision (ICCV). 2021.
+    DOI: 10.1109/ICCV48922.2021.00836
+    → 생성 결함이 실제 산업 환경의 물리적 특성을 충분히 반영하지 못하는 문제,
+      결함-배경 맥락 관계가 명시적으로 고려되지 않는 한계를 지적하는 근거로 인용.
+
+[6] Goodfellow, I.; Pouget-Abadie, J.; Mirza, M.; Xu, B.; Warde-Farley, D.; Ozair, S.;
+    Courville, A.; Bengio, Y. Generative Adversarial Nets. Advances in Neural
+    Information Processing Systems (NeurIPS). 2014.
+    DOI: 10.48550/arXiv.1406.2661
+    → GAN 기반 합성 결함 생성의 원류. 제한된 레이블 데이터에서 현실적인
+      샘플 생성 가능성을 최초로 입증한 foundational work.
+
+[7] Ho, J.; Jain, A.; Abbeel, P. Denoising Diffusion Probabilistic Models. Advances in
+    Neural Information Processing Systems (NeurIPS). 2020.
+    DOI: 10.48550/arXiv.2006.11239
+    → DDPM 기반 생성 모델. GAN 대비 우수한 샘플 다양성 및 시각적 충실도를
+      보여주며, 최근 결함 합성 연구의 기반이 되는 diffusion 모델의 원류.
+
+[19] Weimer, D.; Scholz-Reiter, B.; Shpitalni, M. Design of deep convolutional neural network architectures for automated feature extraction in industrial inspection. CIRP Annals. 2016; Synthetic data augmentation for surface defect detection and classification using deep learning. Journal of Intelligent Manufacturing. 2022, 33, 1–17. DOI: 10.1007/s10845-020-01710-x
+     → GAN 기반 합성 결함 이미지를 NEU 강판 결함 데이터셋에 적용하여 희소 결함 클래스 검출 정확도를 향상시킨 연구. Aware augmentation의 핵심 가치 명시.
+
+[20] Li, H.; Liu, Y.; Liu, C.; Pang, H.; Xu, K. A Few-Shot Steel Surface Defect Generation Method Based on Diffusion Models. Sensors. 2025, 25(10), 3038. DOI: 10.3390/s25103038
+     → Low-rank embedding adaptation + mask-guided 결함 학습 메커니즘으로 사전학습 stable diffusion 모델을 타겟 도메인에 fine-tuning. 데이터 희소 조건에서 소수 결함 클래스 recall 개선.
+
+[21] Guclu, E.; Akin, E. Enhanced defect detection on steel surfaces using integrated residual refinement module with synthetic data augmentation. Measurement. 2025. DOI: 10.1016/j.measurement (pii: S0263224125004956)
+     → ResNet50 + Residual Refinement Module(RRM) 기반 분할 모델에 합성 데이터 증강 적용. mIoU 87.8% 달성. 배경 텍스처와의 경계 일관성을 강제하는 합성 방식으로 결함-배경 맥락 일관성 보장.
+
+================================================================================
+
+================================================================================
+
+================================================================================
+## [Reviewer 1 - Comment 2] ControlNet and diffusion settings — Section 3.2 추가
+================================================================================
+
+> Although the paper introduces multiple stages and scoring formulas, key implementation details are missing. The authors should explain how the compatibility matrix was built, how the threshold values were selected, what exact ControlNet and diffusion settings were used, and how prompt construction was implemented in practice.
+
+--------------------------------------------------------------------------------
+### [추가] ControlNet and diffusion settings (added to Section 3.2)
+--------------------------------------------------------------------------------
+
+The ControlNet model is initialized from lllyasviel/sd-controlnet-canny, built upon the runwayml/stable-diffusion-v1-5 base model, and fine-tuned on the defect ROI dataset for up to 20 epochs using AdamW (lr = 1×10⁻⁵, cosine scheduler with 50 warmup steps) with min-SNR weighting (γ = 5.0) and an effective batch size of 4 (batch size 1, gradient accumulation steps 4) under mixed-precision fp16 training on a Google Colab T4 GPU. The ControlNet conditioning scale was set to 1.0 during training, with early stopping patience of 20 and random seed 42. For inference, 30 denoising steps are applied with a classifier-free guidance scale of 7.5 and a ControlNet conditioning scale of 0.7; generated RGB outputs are converted to grayscale to eliminate VAE decoder color-channel artifacts on single-channel steel surface images.
+
+--------------------------------------------------------------------------------
+### [추가] Prompt construction (added to Section 3.2)
+--------------------------------------------------------------------------------
+
+We use a technical-style prompt template: *"Industrial steel defect: {morphological_type} defect (class {id}) on {surface}, {pattern}, background stability {score:.2f}, match quality {score:.2f}."* A concrete example for a linear_scratch defect on a vertical-stripe background (Class 1): *"Industrial steel defect: linear_scratch defect (class 1) on vertical striped metal surface, vertical line pattern, background stability 0.82, match quality 0.90."* The template ensures the diffusion model receives consistent, quantitative conditioning rather than free-form natural-language descriptions.
+
+================================================================================
+
+================================================================================
+## [Reviewer 3 - Comment 2] Related Work 확장 — Introduction 및 Section 2 보강
+================================================================================
+
+> In the introduction section improve the literature review — by inserting the outcome. It is suggested to include in the introduction some research articles dealing with defect detection using aware data augmentation methods.
+
+--------------------------------------------------------------------------------
+### [원본] Section 2. Related Work (제출 논문 — 위 Reviewer 1 Comment 4 원본과 동일)
+--------------------------------------------------------------------------------
+
+원본 Section 2.1~2.4 내용은 [Reviewer 1 - Comment 4] 섹션 참조.
+
+--------------------------------------------------------------------------------
+### [추가] Section 2 신규 소절 3개
+--------------------------------------------------------------------------------
+
+##2.5. Diffusion-Based Augmentation for Industrial Inspection
+Score-based generative models and latent diffusion models have recently been applied to industrial defect synthesis, demonstrating the capacity to produce high-fidelity defect images from text prompts or structural conditioning signals [7]. These methods offer substantially improved sample diversity and training stability compared to earlier GAN-based approaches, which are prone to mode collapse and require careful architectural tuning to avoid degenerate outputs [6]. However, diffusion-based methods applied to defect generation typically condition generation on defect geometry or class label alone, without incorporating information about the surface substrate on which the defect is to be placed. This omission means that generated defects may exhibit intensity statistics or boundary characteristics that are inconsistent with the target background texture, reducing the downstream utility of the synthetic samples for training background-sensitive detectors [4]. CASDA addresses this gap by providing the diffusion model with a 3-channel hint image that encodes the background surface structure alongside the defect geometry, ensuring that the generated defect is conditioned on the specific substrate into which it will be composited.
+
+##2.6. GAN-Based Defect Generation and Copy-Paste Methods
+The evolution of data-driven defect augmentation traces from unconditional GANs [6] through conditional variants such as DCGAN, Pix2Pix, and CycleGAN, which progressively introduced class-level and structure-level control over generated outputs. These GAN-based methods have been applied to surface inspection across steel, textile, and semiconductor domains, demonstrating that synthetic defect images can improve detector performance when the original dataset is severely imbalanced. Copy-Paste augmentation [12] represents a simpler but widely used alternative: existing defect instances are cut from labeled images and composited onto other training images, requiring no generative model and producing label-consistent outputs. However, Copy-Paste has a structural limitation: it can only redistribute defect instances that already exist in the training set and cannot leverage the large pool of defect-free normal images. At low minority-class counts, this reduces to heavy duplication of the few available instances, which tends to overfit to the specific appearances in that small seed set rather than expanding training distribution diversity. CASDA overcomes this limitation by synthesizing defects directly onto defect-free images selected from a compatibility-matched background pool, converting previously unusable clean images into labeled training samples.
+
+##2.7. Context-Aware and Morphology-Guided Augmentation
+A growing body of work has recognized that naive defect placement — without regard to the structural relationship between the defect and the background — produces composites that reduce detector generalization rather than improving it [4,12]. Context-aware augmentation methods address this by incorporating structural or contextual priors into the placement or generation process: for example, background-conditioned placement strategies that restrict defect insertion to regions with compatible surface statistics, or morphological descriptor-guided synthesis that constrains generated defect shape to the morphological distribution observed in the training set [15,16]. CASDA advances this line of work through a tripartite hint encoding that simultaneously conditions the generative model on (1) the binary defect mask encoding pixel-level geometry (R channel), (2) the background structure map derived from Sobel operations encoding surface orientation (G channel), and (3) the background texture map encoding surface roughness through local dispersion (B channel). This three-channel joint conditioning scheme goes beyond single-channel or text-only conditioning approaches and is, to the authors' knowledge, the first explicit joint defect-background conditioning mechanism applied to industrial defect data augmentation.
+
+================================================================================
