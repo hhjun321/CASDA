@@ -27,13 +27,13 @@ _RANGES: dict[str, tuple[float, float]] = {
     'high_solidity':        (0.0, 1.0),
     'low_solidity':         (0.0, 1.0),
     'elongated_linearity':  (0.0, 1.0),
-    # BackgroundAnalyzer
+    # BackgroundAnalyzer (내부 인자명 기준)
     'variance_threshold':   (0.0, 1e6),
     'edge_threshold':       (0.0, 1.0),
-    'weak_edge':            (0.0, 1e6),
+    'weak_edge':            (0.0, 1e6),   # YAML: total_strength
     'stripe_ratio_v':       (1.0, 10.0),
     'stripe_ratio_h':       (1.0, 10.0),
-    'complex_freq':         (0.0, 1.0),
+    'complex_freq':         (0.0, 1.0),   # YAML: high_freq_ratio
     # Pipeline parameters
     'min_suitability':      (0.0, 1.0),
     'min_quality_score':    (0.0, 1.0),
@@ -111,11 +111,16 @@ _DEFECT_KEY_MAP: dict[str, str] = {
     'elongated_linearity':  'elongated_linearity',
 }
 
-# BackgroundAnalyzer 섹션 키 (YAML 키 = 인자명으로 동일)
-_BG_KEYS = frozenset({
-    'variance_threshold', 'edge_threshold',
-    'weak_edge', 'stripe_ratio_v', 'stripe_ratio_h', 'complex_freq',
-})
+# BackgroundAnalyzer YAML 키 → __init__ 인자명 매핑
+# analyze_dataset.py 출력 키명(YAML) → BackgroundAnalyzer 내부 속성명
+_BG_KEY_MAP: dict[str, str] = {
+    'variance_threshold': 'variance_threshold',
+    'edge_threshold':     'edge_threshold',
+    'total_strength':     'weak_edge',       # YAML: total_strength → 내부: weak_edge
+    'stripe_ratio_v':     'stripe_ratio_v',
+    'stripe_ratio_h':     'stripe_ratio_h',
+    'high_freq_ratio':    'complex_freq',    # YAML: high_freq_ratio → 내부: complex_freq
+}
 
 _PIPELINE_KEYS = frozenset({
     'min_suitability', 'per_class_cap', 'rare_class_threshold',
@@ -145,16 +150,16 @@ def get_defect_thresholds(cfg: dict) -> dict:
 def get_bg_thresholds(cfg: dict) -> dict:
     """
     `background_analyzer_thresholds` 섹션 추출 + 범위 검증.
-    YAML 키 = BackgroundAnalyzer 인자명 (1:1 동일).
+    YAML 키 → BackgroundAnalyzer 내부 인자명 변환 (_BG_KEY_MAP).
     """
     raw = cfg.get('background_analyzer_thresholds') or {}
     result: dict = {}
-    for k in _BG_KEYS:
-        if k in raw:
-            v = raw[k]
-            _validate_value(k, v)
-            result[k] = float(v)
-    unknown = set(raw) - _BG_KEYS
+    for yaml_key, arg_name in _BG_KEY_MAP.items():
+        if yaml_key in raw:
+            v = raw[yaml_key]
+            _validate_value(arg_name, v)
+            result[arg_name] = float(v)
+    unknown = set(raw) - set(_BG_KEY_MAP)
     if unknown:
         print(f"[config] 경고: background_analyzer_thresholds 알 수 없는 키: {unknown}")
     return result
