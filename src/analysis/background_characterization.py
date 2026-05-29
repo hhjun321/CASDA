@@ -31,19 +31,35 @@ class BackgroundAnalyzer:
     Analyzes background textures using grid-based approach.
     """
     
-    def __init__(self, grid_size: int = 64, variance_threshold: float = 100.0, 
-                 edge_threshold: float = 0.3):
+    DEFAULT_THRESHOLDS: dict = {
+        'weak_edge':      1.0,    # classify_patch: total_strength < weak_edge → TEXTURED
+        'stripe_ratio_v': 1.5,    # v_ratio > h_ratio * stripe_ratio_v → VERTICAL_STRIPE
+        'stripe_ratio_h': 1.5,    # h_ratio > v_ratio * stripe_ratio_h → HORIZONTAL_STRIPE
+        'complex_freq':   0.3,    # high_freq_ratio > complex_freq → COMPLEX_PATTERN
+    }
+
+    def __init__(self, grid_size: int = 64, variance_threshold: float = 100.0,
+                 edge_threshold: float = 0.3,
+                 thresholds: Optional[dict] = None):
         """
         Initialize background analyzer.
-        
+
         Args:
             grid_size: Size of grid patches (64x64 or 128x128)
             variance_threshold: Threshold to distinguish smooth vs textured
             edge_threshold: Threshold for edge direction analysis
+            thresholds: classify_patch 세부 임계값 dict (weak_edge, stripe_ratio_v,
+                stripe_ratio_h, complex_freq). 누락 키는 DEFAULT_THRESHOLDS로 보충.
         """
         self.grid_size = grid_size
         self.variance_threshold = variance_threshold
         self.edge_threshold = edge_threshold
+        t = thresholds or {}
+        d = self.DEFAULT_THRESHOLDS
+        self.weak_edge      = float(t.get('weak_edge',      d['weak_edge']))
+        self.stripe_ratio_v = float(t.get('stripe_ratio_v', d['stripe_ratio_v']))
+        self.stripe_ratio_h = float(t.get('stripe_ratio_h', d['stripe_ratio_h']))
+        self.complex_freq   = float(t.get('complex_freq',   d['complex_freq']))
     
     def compute_variance(self, patch: np.ndarray) -> float:
         """
@@ -152,7 +168,7 @@ class BackgroundAnalyzer:
         h_strength = edge_info['horizontal']
         total_strength = edge_info['total']
         
-        if total_strength < 1.0:  # Very weak edges
+        if total_strength < self.weak_edge:  # Very weak edges
             return BackgroundType.TEXTURED, 0.5
         
         # Normalize strengths
@@ -160,14 +176,14 @@ class BackgroundAnalyzer:
         h_ratio = h_strength / (total_strength + 1e-6)
         
         # Check for dominant direction (no FFT needed)
-        if v_ratio > self.edge_threshold and v_ratio > h_ratio * 1.5:
+        if v_ratio > self.edge_threshold and v_ratio > h_ratio * self.stripe_ratio_v:
             return BackgroundType.VERTICAL_STRIPE, float(np.clip(v_ratio, 0.0, 1.0))
-        elif h_ratio > self.edge_threshold and h_ratio > v_ratio * 1.5:
+        elif h_ratio > self.edge_threshold and h_ratio > v_ratio * self.stripe_ratio_h:
             return BackgroundType.HORIZONTAL_STRIPE, float(np.clip(h_ratio, 0.0, 1.0))
         
         # Step 3: Only compute FFT when edge analysis is inconclusive
         freq_info = self.compute_frequency_spectrum(patch)
-        if freq_info['high_freq_ratio'] > 0.3:
+        if freq_info['high_freq_ratio'] > self.complex_freq:
             stability = 1.0 - freq_info['high_freq_ratio']
             return BackgroundType.COMPLEX_PATTERN, float(np.clip(stability, 0.0, 1.0))
         

@@ -24,6 +24,10 @@ from src.preprocessing.roi_extraction import ROIExtractor
 from src.analysis.defect_characterization import DefectCharacterizer
 from src.analysis.background_characterization import BackgroundAnalyzer
 from src.analysis.roi_suitability import ROISuitabilityEvaluator
+from src.utils.config_loader import (
+    load_recommended_config, resolve,
+    get_defect_thresholds, get_bg_thresholds, get_pipeline_params,
+)
 
 
 def main():
@@ -66,7 +70,7 @@ def main():
     parser.add_argument(
         '--min_suitability',
         type=float,
-        default=0.5,
+        default=None,   # None = 미지정. resolve()에서 config > 기본값 0.5 적용
         help='Minimum suitability score to accept ROI'
     )
     parser.add_argument(
@@ -86,7 +90,14 @@ def main():
         default=0,
         help='Number of parallel workers (0 = sequential, recommended for Colab)'
     )
-    
+    parser.add_argument(
+        '--config',
+        type=str,
+        default=None,
+        help='Stage 0 recommended_config.yaml 경로 ($ANALYSIS_CONFIG). '
+             '우선순위: CLI > config > 기본값'
+    )
+
     args = parser.parse_args()
     
     # Convert to Path objects
@@ -114,29 +125,44 @@ def main():
     print(f"Output directory: {output_dir}")
     print(f"ROI size: {args.roi_size}")
     print(f"Grid size: {args.grid_size}")
-    print(f"Min suitability: {args.min_suitability}")
+    print(f"Min suitability: (CLI 미지정 시 config/기본값 0.5 적용)")
     print(f"Max images: {args.max_images or 'all'}")
     print(f"Save patches: {not args.no_save_patches}")
     print(f"Workers: {args.num_workers or 'sequential'}")
+    print(f"Config: {args.config or '없음 (기본값 사용)'}")
     print("="*80)
-    
-    # Initialize analyzers
+
+    # Stage 0 config 로드 (--config 미지정 시 빈 dict)
+    cfg = load_recommended_config(args.config)
+    dc_cfg = get_defect_thresholds(cfg)
+    bg_cfg = get_bg_thresholds(cfg)
+    pp_cfg = get_pipeline_params(cfg)
+
+    # Initialize analyzers (CLI > config > 기본값)
     print("\n[1/5] Initializing analyzers...")
-    defect_analyzer = DefectCharacterizer()
+    defect_analyzer = DefectCharacterizer(thresholds=dc_cfg)
     background_analyzer = BackgroundAnalyzer(
         grid_size=args.grid_size,
-        variance_threshold=100.0,
-        edge_threshold=0.3
+        variance_threshold=bg_cfg.get('variance_threshold', 100.0),
+        edge_threshold=bg_cfg.get('edge_threshold', 0.3),
+        thresholds=bg_cfg,
     )
     roi_evaluator = ROISuitabilityEvaluator(defect_analyzer, background_analyzer)
     
+    # min_suitability: CLI > config > 기본값 0.5
+    min_suitability = resolve(
+        args.min_suitability,
+        pp_cfg.get('min_suitability'),
+        0.5,
+    )
+
     # Initialize extractor
     extractor = ROIExtractor(
         defect_analyzer=defect_analyzer,
         background_analyzer=background_analyzer,
         roi_evaluator=roi_evaluator,
         roi_size=args.roi_size,
-        min_suitability=args.min_suitability
+        min_suitability=min_suitability,
     )
     
     # Process dataset

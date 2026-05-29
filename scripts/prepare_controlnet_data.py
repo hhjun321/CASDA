@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.preprocessing.controlnet_packager import ControlNetDatasetPackager
 from src.preprocessing.hint_generator import HintImageGenerator
 from src.preprocessing.prompt_generator import PromptGenerator
+from src.utils.config_loader import load_recommended_config, resolve, get_pipeline_params
 from src.utils.dataset_validator import DatasetValidator
 
 from typing import Dict, Optional
@@ -158,9 +159,9 @@ def main():
     parser.add_argument(
         '--rare_class_threshold',
         type=int,
-        default=200,
+        default=None,
         help='이 수 이하인 클래스를 희소로 간주하여 전수 포함 (기본 200). '
-             '--per_class_cap과 함께 사용.'
+             '--per_class_cap과 함께 사용. --config로 Stage 0 값 자동 적용 가능.'
     )
     parser.add_argument(
         '--class_edge_override',
@@ -184,9 +185,24 @@ def main():
         default=0,
         help='병렬 워커 수 (0=순차 처리, -1=자동 감지, N=N개 워커)'
     )
-    
+    parser.add_argument(
+        '--config',
+        type=str,
+        default=None,
+        help='Stage 0 recommended_config.yaml 경로 ($ANALYSIS_CONFIG). '
+             '우선순위: CLI > config > 기본값'
+    )
+
     args = parser.parse_args()
-    
+
+    # Stage 0 config 로드 (--config 미지정 시 빈 dict)
+    cfg = load_recommended_config(args.config)
+    pp_cfg = get_pipeline_params(cfg)
+
+    # CLI > config > 기본값
+    per_class_cap        = resolve(args.per_class_cap,        pp_cfg.get('per_class_cap'),        None)
+    rare_class_threshold = resolve(args.rare_class_threshold, pp_cfg.get('rare_class_threshold'), 200)
+
     # Convert to Path objects
     roi_metadata_path = Path(args.roi_metadata)
     train_images_dir = Path(args.train_images)
@@ -227,8 +243,8 @@ def main():
     print(f"Run validation: {not args.skip_validation}")
     if args.max_samples:
         print(f"Max samples: {args.max_samples}")
-    if args.per_class_cap:
-        print(f"Per-class cap: {args.per_class_cap} (rare threshold: {args.rare_class_threshold})")
+    if per_class_cap:
+        print(f"Per-class cap: {per_class_cap} (rare threshold: {rare_class_threshold})")
     if class_margin_overrides:
         print(f"Edge margin overrides: {class_margin_overrides}")
     
@@ -294,8 +310,8 @@ def main():
         output_dir=output_dir,
         create_hints=not args.skip_hints,
         max_samples=args.max_samples,
-        per_class_cap=args.per_class_cap,
-        rare_class_threshold_count=args.rare_class_threshold,
+        per_class_cap=per_class_cap,
+        rare_class_threshold_count=rare_class_threshold,
         class_margin_overrides=class_margin_overrides,
         num_workers=num_workers,
     )

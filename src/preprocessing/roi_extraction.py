@@ -49,7 +49,8 @@ def _process_single_image_worker(args_tuple):
     """
     (image_id, image_dir_str, train_csv_str,
      roi_size, min_suitability, grid_size,
-     save_patches, output_dir_str) = args_tuple
+     save_patches, output_dir_str,
+     dc_thresholds, bg_thresholds) = args_tuple
 
     from pathlib import Path
 
@@ -57,12 +58,13 @@ def _process_single_image_worker(args_tuple):
     if not Path(image_path).exists():
         return []
 
-    # 워커 내부에서 필요한 객체 재생성 (pickle 회피)
-    defect_analyzer = DefectCharacterizer()
+    # 워커 내부에서 필요한 객체 재생성 (pickle 회피, config 반영값 전파)
+    defect_analyzer = DefectCharacterizer(thresholds=dc_thresholds)
     background_analyzer = BackgroundAnalyzer(
         grid_size=grid_size,
-        variance_threshold=100.0,
-        edge_threshold=0.3,
+        variance_threshold=bg_thresholds.get('variance_threshold', 100.0),
+        edge_threshold=bg_thresholds.get('edge_threshold', 0.3),
+        thresholds=bg_thresholds,
     )
     roi_evaluator = ROISuitabilityEvaluator(defect_analyzer, background_analyzer)
 
@@ -392,10 +394,29 @@ class ROIExtractor:
             grid_size = self.background_analyzer.grid_size if hasattr(
                 self.background_analyzer, 'grid_size') else 64
             
+            # config/CLI 반영된 임계값을 워커에 전파
+            dc_thresholds = {
+                'high_linearity':      self.defect_analyzer.high_linearity,
+                'high_aspect_ratio':   self.defect_analyzer.high_aspect_ratio,
+                'low_aspect_ratio':    self.defect_analyzer.low_aspect_ratio,
+                'high_solidity':       self.defect_analyzer.high_solidity,
+                'low_solidity':        self.defect_analyzer.low_solidity,
+                'elongated_linearity': self.defect_analyzer.elongated_linearity,
+            }
+            bg_thresholds = {
+                'variance_threshold': self.background_analyzer.variance_threshold,
+                'edge_threshold':     self.background_analyzer.edge_threshold,
+                'weak_edge':          self.background_analyzer.weak_edge,
+                'stripe_ratio_v':     self.background_analyzer.stripe_ratio_v,
+                'stripe_ratio_h':     self.background_analyzer.stripe_ratio_h,
+                'complex_freq':       self.background_analyzer.complex_freq,
+            }
+
             tasks = [
                 (img_id, str(image_dir), str(train_csv),
                  self.roi_size, self.min_suitability, grid_size,
-                 save_patches, str(output_dir))
+                 save_patches, str(output_dir),
+                 dc_thresholds, bg_thresholds)
                 for img_id in image_ids
             ]
             

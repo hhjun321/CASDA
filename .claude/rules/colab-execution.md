@@ -41,11 +41,14 @@ python ${SCRIPTS}/analyze_dataset.py \
 | `FID_RESULTS` | `$DRIVE/fid_results` |
 | `LOCAL_IMAGES` | `/content/dataset_local/train_images` |
 
-`ANALYSIS_DIR`는 기본 설정에 없음 → 별도 셀에서 추가:
+`ANALYSIS_DIR`, `ANALYSIS_CONFIG`는 기본 설정에 없음 → 별도 셀에서 추가:
 ```python
 import os
-os.environ['ANALYSIS_DIR'] = f"{os.environ['DRIVE']}/analysis"
+os.environ['ANALYSIS_DIR']    = f"{os.environ['DRIVE']}/analysis"
+os.environ['ANALYSIS_CONFIG'] = f"{os.environ['DRIVE']}/analysis/recommended_config.yaml"
 ```
+
+`ANALYSIS_CONFIG`는 Stage 0(`analyze_dataset.py`) 완료 후 생성되는 파일. Stage A 이후 스크립트의 `--config` 인자로 전달.
 
 ## 저장소 클론
 

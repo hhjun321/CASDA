@@ -19,9 +19,31 @@ class DefectCharacterizer:
     """
     Analyzes defect masks and computes geometric properties.
     """
-    
-    def __init__(self):
-        pass
+
+    DEFAULT_THRESHOLDS: dict = {
+        'high_linearity':       0.85,
+        'high_aspect_ratio':    5.0,
+        'low_aspect_ratio':     2.0,
+        'high_solidity':        0.9,
+        'low_solidity':         0.7,
+        'elongated_linearity':  0.6,
+    }
+
+    def __init__(self, thresholds: Optional[dict] = None):
+        """
+        Args:
+            thresholds: classify_defect_subtype 임계값 dict.
+                누락 키는 DEFAULT_THRESHOLDS로 보충.
+                None 이면 전체 기본값 사용 (기존 동작과 동일).
+        """
+        t = thresholds or {}
+        d = self.DEFAULT_THRESHOLDS
+        self.high_linearity      = float(t.get('high_linearity',      d['high_linearity']))
+        self.high_aspect_ratio   = float(t.get('high_aspect_ratio',   d['high_aspect_ratio']))
+        self.low_aspect_ratio    = float(t.get('low_aspect_ratio',    d['low_aspect_ratio']))
+        self.high_solidity       = float(t.get('high_solidity',       d['high_solidity']))
+        self.low_solidity        = float(t.get('low_solidity',        d['low_solidity']))
+        self.elongated_linearity = float(t.get('elongated_linearity', d['elongated_linearity']))
     
     def compute_linearity(self, region) -> float:
         """
@@ -206,25 +228,17 @@ class DefectCharacterizer:
         Returns:
             Sub-type classification string
         """
-        linearity = metrics['linearity']
-        solidity = metrics['solidity']
+        linearity    = metrics['linearity']
+        solidity     = metrics['solidity']
         aspect_ratio = metrics['aspect_ratio']
-        
-        # Define thresholds
-        HIGH_LINEARITY = 0.85
-        HIGH_ASPECT_RATIO = 5.0
-        LOW_ASPECT_RATIO = 2.0
-        HIGH_SOLIDITY = 0.9
-        LOW_SOLIDITY = 0.7
-        
-        # Classification rules
-        if linearity > HIGH_LINEARITY and aspect_ratio > HIGH_ASPECT_RATIO:
+
+        if linearity > self.high_linearity and aspect_ratio > self.high_aspect_ratio:
             return 'linear_scratch'
-        elif solidity < LOW_SOLIDITY:
+        elif solidity < self.low_solidity:
             return 'irregular'
-        elif aspect_ratio > HIGH_ASPECT_RATIO and linearity > 0.6:
+        elif aspect_ratio > self.high_aspect_ratio and linearity > self.elongated_linearity:
             return 'elongated'
-        elif aspect_ratio < LOW_ASPECT_RATIO and solidity > HIGH_SOLIDITY:
+        elif aspect_ratio < self.low_aspect_ratio and solidity > self.high_solidity:
             return 'compact_blob'
         else:
             return 'general'
