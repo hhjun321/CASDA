@@ -390,7 +390,22 @@ def build_matrix_and_params(cooccur, class_counts):
 # Figure rendering (9 figures)
 # ──────────────────────────────────────────────────────────────────────────────
 
+def _write_json(path: Path, obj) -> None:
+    """Google Drive FUSE 안정성을 위해 쓰기 직전 parent 디렉토리 보장."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2)
+
+
+def _write_yaml(path: Path, obj) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(obj, f, allow_unicode=True, sort_keys=False,
+                       default_flow_style=False)
+
+
 def _savefig(figures_dir: Path, fname: str) -> None:
+    figures_dir.mkdir(parents=True, exist_ok=True)
     path = figures_dir / fname
     plt.savefig(path, dpi=120, bbox_inches="tight")
     plt.close()
@@ -858,8 +873,7 @@ def main() -> None:
     class_dist["subtype_counts"] = dict(subtype_counts)
     class_dist["bg_type_counts"] = dict(bg_type_counts)
 
-    with open(output_dir / "class_distribution.json", "w") as f:
-        json.dump(class_dist, f, indent=2)
+    _write_json(output_dir / "class_distribution.json", class_dist)
     print(f"  {dict(class_counts)}")
 
     # ── [4/8] Threshold derivation ───────────────────────────────────────────
@@ -905,8 +919,7 @@ def main() -> None:
         flag = "✓" if derivable else "✗"
         print(f"  {flag} {name:<26} {default!s:<7} → {val!s:<9} [{method}]")
 
-    with open(output_dir / "threshold_recommendations.json", "w") as f:
-        json.dump(threshold_recs, f, indent=2)
+    _write_json(output_dir / "threshold_recommendations.json", threshold_recs)
 
     # ── [5/8] 4×5 matrix + 5×5 empirical compatibility ───────────────────────
     print("\n[5/8] 4×5 matrix + 5×5 empirical compatibility (MATCHING_RULES 교체)...")
@@ -914,8 +927,7 @@ def main() -> None:
         cooccur, class_counts
     )
 
-    with open(output_dir / "defect_bg_matrix_4x5.json", "w") as f:
-        json.dump(matrix_out, f, indent=2)
+    _write_json(output_dir / "defect_bg_matrix_4x5.json", matrix_out)
 
     # 5×5 subtype × bg_type empirical compatibility (논문 MATCHING_RULES 교체 근거)
     subtype_compat_out = {
@@ -926,8 +938,7 @@ def main() -> None:
         subtype: empirical_compat[subtype].get("_n_instances", 0)
         for subtype in SUBTYPES
     }
-    with open(output_dir / "subtype_bg_matrix_5x5.json", "w") as f:
-        json.dump(subtype_compat_out, f, indent=2)
+    _write_json(output_dir / "subtype_bg_matrix_5x5.json", subtype_compat_out)
 
     print(f"  num_images_per_class : {param_recs['num_images_per_class']}")
     print(f"  compositions_per_roi : {param_recs['compositions_per_roi']}")
@@ -994,9 +1005,7 @@ def main() -> None:
             "paper_compatibility_matrix":    "논문 수동 설정값 — 비교 기준으로만 보관",
         },
     }
-    with open(output_dir / "recommended_config.yaml", "w", encoding="utf-8") as f:
-        yaml.safe_dump(config, f, allow_unicode=True, sort_keys=False,
-                       default_flow_style=False)
+    _write_yaml(output_dir / "recommended_config.yaml", config)
 
     # ── [7/8] Figures ─────────────────────────────────────────────────────────
     print("\n[7/8] Rendering figures...")
