@@ -287,43 +287,62 @@ def derive_threshold(
 
 def build_matrix_and_params(cooccur, class_counts):
     """
-    Build 4×5 (class × bg_type) co-occurrence matrix and derive:
-      - target_synthetic  (deficit-weighted synthesis targets)
-      - compatibility_score (0.6 × MATCHING_RULES + 0.4 × empirical)
-      - num_images_per_class, compositions_per_roi, per_class_cap, rare_class_threshold
-    """
-    bg_idx = {bg: i for i, bg in enumerate(BG_TYPES)}
+    Build 4×5 (class × bg_type) co-occurrence matrix and 5×5 (subtype × bg_type)
+    empirical compatibility matrix.
 
-    M           = np.zeros((4, 5), dtype=np.int64)
+    핵심 목적: 논문에서 수동 설정한 MATCHING_RULES 수치를 실제 데이터 분포로 교체.
+      empirical_compat[subtype][bg] = count(subtype, bg) / count(subtype, all_bg)
+    """
+    bg_idx  = {bg: i for i, bg in enumerate(BG_TYPES)}
+    sub_idx = {s: i for i, s in enumerate(SUBTYPES)}
+
+    # 4×5 (class × bg) co-occurrence
+    M            = np.zeros((4, 5), dtype=np.int64)
     subtype_dist = {c: Counter() for c in CLASS_IDS}
+
+    # 5×5 (subtype × bg) co-occurrence — MATCHING_RULES 교체 근거
+    S = np.zeros((len(SUBTYPES), 5), dtype=np.int64)
 
     for class_id, subtype, bg in cooccur:
         if 1 <= class_id <= 4 and bg in bg_idx:
             M[class_id - 1, bg_idx[bg]] += 1
         if 1 <= class_id <= 4:
             subtype_dist[class_id][subtype] += 1
+        if subtype in sub_idx and bg in bg_idx:
+            S[sub_idx[subtype], bg_idx[bg]] += 1
 
-    row_tot = M.sum(axis=1, keepdims=True).clip(1)
-    P       = M / row_tot                           # P(bg | class)
+    # 5×5 empirical compatibility: P(bg | subtype), 논문 prior 비사용
+    sub_tot = S.sum(axis=1, keepdims=True).clip(1)
+    P_sub   = S / sub_tot                           # shape (5, 5)
+
+    empirical_compat = {}
+    for si, subtype in enumerate(SUBTYPES):
+        n_total = int(S[si].sum())
+        empirical_compat[subtype] = {
+            bg: round(float(P_sub[si, bi]), 4)
+            for bi, bg in enumerate(BG_TYPES)
+        }
+        empirical_compat[subtype]["_n_instances"] = n_total  # 신뢰도 참고용
+
+    # 4×5 (class × bg) 파생
+    row_tot   = M.sum(axis=1, keepdims=True).clip(1)
+    P         = M / row_tot                          # P(bg | class)
     global_bg = M.sum(axis=0) / max(int(M.sum()), 1)
 
-    rules = ROISuitabilityEvaluator.MATCHING_RULES
-
     matrix_out = {}
-    compat_out = {}
-    target_out = {}
+    compat_out = {}   # 4×5: class 수준 compat (dominant subtype 기반)
 
     for c in CLASS_IDS:
-        deficit = np.clip(global_bg - P[c - 1], 0, None)
-        dsum    = float(deficit.sum())
+        deficit  = np.clip(global_bg - P[c - 1], 0, None)
+        dsum     = float(deficit.sum())
         dominant = subtype_dist[c].most_common(1)[0][0] if subtype_dist[c] else "general"
-        rule_row = rules.get(dominant, rules["general"])
+        emp_row  = empirical_compat.get(dominant, empirical_compat.get("general", {}))
 
         row = {}
         compat_row = {}
-        target_row = {}
         for j, bg in enumerate(BG_TYPES):
-            comp = round(0.6 * rule_row.get(bg, 0.5) + 0.4 * float(P[c - 1, j]), 4)
+            # 순수 empirical — 논문 prior 혼합 없음
+            comp = emp_row.get(bg, round(1.0 / 5, 4))
             tgt  = round(float(deficit[j] / dsum), 4) if dsum > 0 else round(1.0 / 5, 4)
             row[bg] = {
                 "count_real":          int(M[c - 1, j]),
@@ -331,17 +350,15 @@ def build_matrix_and_params(cooccur, class_counts):
                 "compatibility_score": comp,
             }
             compat_row[bg] = comp
-            target_row[bg] = tgt
 
-        matrix_out[f"class_{c}"]  = row
-        compat_out[c]             = compat_row
-        target_out[c]             = target_row
+        matrix_out[f"class_{c}"] = row
+        compat_out[c]            = compat_row
 
-    # Pipeline parameters derived from class distribution
+    # Pipeline parameters
     counts_arr = np.array([class_counts.get(c, 0) for c in CLASS_IDS], dtype=float)
     nz = counts_arr[counts_arr > 0]
-    per_class_cap         = int(np.percentile(nz, 90))  if len(nz) else 1200
-    rare_class_threshold  = int(np.percentile(nz, 25))  if len(nz) else 200
+    per_class_cap        = int(np.percentile(nz, 90)) if len(nz) else 1200
+    rare_class_threshold = int(np.percentile(nz, 25)) if len(nz) else 200
 
     max_cnt = max(class_counts.values()) if class_counts else 1
     num_images = {}
@@ -349,15 +366,23 @@ def build_matrix_and_params(cooccur, class_counts):
         cnt = class_counts.get(c, 0)
         num_images[c] = max(1, round(max_cnt / cnt)) if cnt > 0 else 10
 
-    avg_deficit = float(np.clip(global_bg - P, 0, None).mean())
+    avg_deficit  = float(np.clip(global_bg - P, 0, None).mean())
     comp_per_roi = max(3, min(10, round(5 + avg_deficit * 20)))
 
-    return matrix_out, {
-        "num_images_per_class":  {str(c): num_images[c] for c in CLASS_IDS},
-        "compositions_per_roi":  comp_per_roi,
-        "per_class_cap":         per_class_cap,
-        "rare_class_threshold":  rare_class_threshold,
-        "compatibility_matrix":  compat_out,
+    # 논문 MATCHING_RULES (비교용 — 교체 전 기준값)
+    paper_compat = {
+        subtype: dict(row)
+        for subtype, row in ROISuitabilityEvaluator.MATCHING_RULES.items()
+    }
+
+    return matrix_out, empirical_compat, S, {
+        "num_images_per_class":         {str(c): num_images[c] for c in CLASS_IDS},
+        "compositions_per_roi":         comp_per_roi,
+        "per_class_cap":                per_class_cap,
+        "rare_class_threshold":         rare_class_threshold,
+        "compatibility_matrix":         compat_out,           # 4×5 class 수준
+        "subtype_compatibility_matrix": empirical_compat,      # 5×5 데이터 기반 (MATCHING_RULES 교체)
+        "paper_compatibility_matrix":   paper_compat,          # 5×5 논문 기준 (비교용)
     }
 
 
@@ -376,6 +401,7 @@ def render_figures(
     class_counts, subtype_counts, morph_arrays,
     bg_type_counts, bg_arrays, matrix_out,
     area_by_class, threshold_recs, figures_dir: Path,
+    empirical_compat=None, paper_compat=None,
 ) -> None:
 
     def _vline(ax, key, label_prefix="rec"):
@@ -501,6 +527,39 @@ def render_figures(
     ax.set_title("Defect Area Distribution by Class")
     _savefig(figures_dir, "fig9_per_class_area_box.png")
 
+    # Fig 10: 5×5 Subtype × BG empirical compatibility heatmap
+    # 논문 MATCHING_RULES vs 데이터 기반 비교
+    if empirical_compat is not None:
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+        def _subtype_heat(compat_dict, ax, title):
+            heat = np.array([
+                [compat_dict.get(sub, {}).get(bg, 0.0) for bg in BG_TYPES]
+                for sub in SUBTYPES
+            ], dtype=float)
+            im = ax.imshow(heat, aspect="auto", cmap="RdYlGn", vmin=0, vmax=1)
+            plt.colorbar(im, ax=ax, label="score")
+            ax.set_xticks(range(5)); ax.set_xticklabels(BG_TYPES, rotation=18, ha="right")
+            ax.set_yticks(range(5)); ax.set_yticklabels(SUBTYPES)
+            for i in range(5):
+                for j in range(5):
+                    v = heat[i, j]
+                    color = "white" if v > 0.7 or v < 0.3 else "black"
+                    ax.text(j, i, f"{v:.2f}", ha="center", va="center",
+                            fontsize=8, color=color)
+            ax.set_title(title)
+
+        _subtype_heat(empirical_compat, axes[0], "Empirical (Data-driven)")
+        if paper_compat is not None:
+            _subtype_heat(paper_compat, axes[1], "Paper Prior (MATCHING_RULES)")
+        else:
+            axes[1].axis("off")
+
+        fig.suptitle("Subtype × Background Compatibility (5×5)\nLeft: 데이터기반  Right: 논문 prior",
+                     fontweight="bold")
+        plt.tight_layout()
+        _savefig(figures_dir, "fig10_subtype_bg_compat_heatmap.png")
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Report
@@ -557,6 +616,17 @@ def render_report(
         "",
         "![Heatmap](figures/fig8_defect_bg_heatmap.png)",
         "![Area](figures/fig9_per_class_area_box.png)",
+        "",
+        "---",
+        "",
+        "## 4b. Subtype × Background Compatibility (5×5) — MATCHING_RULES 교체 근거",
+        "",
+        "좌: 데이터 기반 (실측 공출현 비율)  |  우: 논문 prior (수동 설정)",
+        "",
+        "![Compat Heatmap](figures/fig10_subtype_bg_compat_heatmap.png)",
+        "",
+        "> `subtype_bg_matrix_5x5.json` + `recommended_config.yaml:subtype_compatibility_matrix`에 저장.",
+        "> `roi_suitability.py:MATCHING_RULES`를 이 값으로 교체할 것.",
         "",
         "---",
         "",
@@ -838,16 +908,45 @@ def main() -> None:
     with open(output_dir / "threshold_recommendations.json", "w") as f:
         json.dump(threshold_recs, f, indent=2)
 
-    # ── [5/8] 4×5 matrix + generation parameters ─────────────────────────────
-    print("\n[5/8] 4×5 matrix + generation parameters...")
-    matrix_out, param_recs = build_matrix_and_params(cooccur, class_counts)
+    # ── [5/8] 4×5 matrix + 5×5 empirical compatibility ───────────────────────
+    print("\n[5/8] 4×5 matrix + 5×5 empirical compatibility (MATCHING_RULES 교체)...")
+    matrix_out, empirical_compat, S_mat, param_recs = build_matrix_and_params(
+        cooccur, class_counts
+    )
 
     with open(output_dir / "defect_bg_matrix_4x5.json", "w") as f:
         json.dump(matrix_out, f, indent=2)
+
+    # 5×5 subtype × bg_type empirical compatibility (논문 MATCHING_RULES 교체 근거)
+    subtype_compat_out = {
+        subtype: {bg: vals[bg] for bg in BG_TYPES}   # _n_instances 제외
+        for subtype, vals in empirical_compat.items()
+    }
+    subtype_compat_out["_n_instances"] = {
+        subtype: empirical_compat[subtype].get("_n_instances", 0)
+        for subtype in SUBTYPES
+    }
+    with open(output_dir / "subtype_bg_matrix_5x5.json", "w") as f:
+        json.dump(subtype_compat_out, f, indent=2)
+
     print(f"  num_images_per_class : {param_recs['num_images_per_class']}")
     print(f"  compositions_per_roi : {param_recs['compositions_per_roi']}")
     print(f"  per_class_cap        : {param_recs['per_class_cap']}")
     print(f"  rare_class_threshold : {param_recs['rare_class_threshold']}")
+
+    # 논문 vs 데이터 기반 비교 출력
+    paper = param_recs["paper_compatibility_matrix"]
+    empir = param_recs["subtype_compatibility_matrix"]
+    print("\n  Compatibility 비교 (논문 → 데이터기반):")
+    for subtype in SUBTYPES:
+        n = empirical_compat.get(subtype, {}).get("_n_instances", 0)
+        if n < 10:
+            print(f"    {subtype:<16} n={n:>5} (샘플 부족 — 논문값 유지 권장)")
+            continue
+        diffs = {bg: round(empir.get(subtype, {}).get(bg, 0) -
+                           paper.get(subtype, {}).get(bg, 0.5), 3)
+                 for bg in BG_TYPES}
+        print(f"    {subtype:<16} n={n:>5}  Δ={diffs}")
 
     # ── [6/8] recommended_config.yaml ────────────────────────────────────────
     print("\n[6/8] Writing recommended_config.yaml...")
@@ -882,9 +981,17 @@ def main() -> None:
                 str(c): v for c, v in param_recs["compatibility_matrix"].items()
             },
         },
+        # 논문 MATCHING_RULES 교체 근거 — subtype × bg_type 실측 공출현 비율
+        "subtype_compatibility_matrix": {
+            subtype: {bg: subtype_compat_out[subtype][bg] for bg in BG_TYPES}
+            for subtype in SUBTYPES
+        },
+        "paper_compatibility_matrix": param_recs["paper_compatibility_matrix"],
         "notes": {
-            "min_suitability":   "Stage 0 도출 불가 — Stage A 후 suitability 분포에서 재산정",
-            "min_quality_score": "Stage 0 도출 불가 — Stage C 후 quality 분포에서 재산정",
+            "min_suitability":               "Stage 0 도출 불가 — Stage A 후 suitability 분포에서 재산정",
+            "min_quality_score":             "Stage 0 도출 불가 — Stage C 후 quality 분포에서 재산정",
+            "subtype_compatibility_matrix":  "실측 공출현 비율 기반 — roi_suitability.py MATCHING_RULES 교체 근거",
+            "paper_compatibility_matrix":    "논문 수동 설정값 — 비교 기준으로만 보관",
         },
     }
     with open(output_dir / "recommended_config.yaml", "w", encoding="utf-8") as f:
@@ -894,15 +1001,20 @@ def main() -> None:
     # ── [7/8] Figures ─────────────────────────────────────────────────────────
     print("\n[7/8] Rendering figures...")
     render_figures(
-        class_counts   = {c: class_counts.get(c, 0) for c in CLASS_IDS},
-        subtype_counts = subtype_counts,
-        morph_arrays   = morph_arrays,
-        bg_type_counts = bg_type_counts,
-        bg_arrays      = bg_arrays,
-        matrix_out     = matrix_out,
-        area_by_class  = area_by_class,
-        threshold_recs = threshold_recs,
-        figures_dir    = figures_dir,
+        class_counts    = {c: class_counts.get(c, 0) for c in CLASS_IDS},
+        subtype_counts  = subtype_counts,
+        morph_arrays    = morph_arrays,
+        bg_type_counts  = bg_type_counts,
+        bg_arrays       = bg_arrays,
+        matrix_out      = matrix_out,
+        area_by_class   = area_by_class,
+        threshold_recs  = threshold_recs,
+        figures_dir     = figures_dir,
+        empirical_compat = {
+            s: {bg: empirical_compat[s][bg] for bg in BG_TYPES}
+            for s in SUBTYPES if s in empirical_compat
+        },
+        paper_compat    = param_recs["paper_compatibility_matrix"],
     )
 
     # ── [8/8] Report ──────────────────────────────────────────────────────────
