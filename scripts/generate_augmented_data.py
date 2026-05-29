@@ -222,8 +222,6 @@ class AugmentationGenerator:
             mask = self.create_blob_mask(base_size, solidity)
         elif subtype == 'irregular':
             mask = self.create_irregular_mask(base_size, solidity)
-        elif subtype == 'elongated':
-            mask = self.create_elongated_mask(base_size, aspect_ratio)
         else:  # general
             mask = self.create_general_mask(base_size)
         
@@ -287,19 +285,6 @@ class AugmentationGenerator:
         
         points = np.array(points, dtype=np.int32)
         cv2.fillPoly(mask, [points], 255)
-        
-        return mask
-    
-    def create_elongated_mask(self, size, aspect_ratio):
-        """Create elongated mask."""
-        width = int(size * aspect_ratio * 0.7)
-        height = size
-        
-        mask = np.zeros((height * 2, width * 2), dtype=np.uint8)
-        center = (width, height)
-        axes = (width // 2, height // 2)
-        
-        cv2.ellipse(mask, center, axes, 0, 0, 360, 255, -1)
         
         return mask
     

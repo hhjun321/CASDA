@@ -75,6 +75,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.preprocessing.poisson_blender import PoissonBlender
+from src.utils.config_loader import load_recommended_config, get_pipeline_params, resolve
 
 logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -99,10 +100,6 @@ COMPATIBILITY_MATRIX = {
     },
     'scattered_defects': {
         'smooth': 1.0, 'vertical_stripe': 0.8, 'horizontal_stripe': 0.8,
-        'textured': 0.5, 'complex_pattern': 0.2,
-    },
-    'elongated_region': {
-        'smooth': 0.8, 'vertical_stripe': 1.0, 'horizontal_stripe': 1.0,
         'textured': 0.5, 'complex_pattern': 0.2,
     },
 }
@@ -1661,10 +1658,11 @@ def main():
     )
     # ── Pruning 풀 확대 옵션 ──
     parser.add_argument(
-        "--compositions-per-roi", type=int, default=1,
-        help="각 생성 이미지당 합성 변형 수 (기본: 1). "
+        "--compositions-per-roi", type=int, default=None,
+        help="각 생성 이미지당 합성 변형 수 (기본: YAML 값 또는 1). "
              "N>1이면 각 ROI에 대해 서로 다른 (배경, jitter, scale) 조합으로 "
-             "N개의 합성 이미지를 생성하여 pruning 풀을 N배 확대. GPU 비용 없음",
+             "N개의 합성 이미지를 생성하여 pruning 풀을 N배 확대. GPU 비용 없음. "
+             "우선순위: CLI > --config YAML > 1",
     )
     # ── Ablation Study 옵션 ──
     parser.add_argument(
@@ -1673,9 +1671,41 @@ def main():
              "생성 이미지를 마스크 기반으로 배경에 직접 덮어씌움. "
              "출력 디렉토리를 casda_no_blend 등으로 변경 권장.",
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help='Stage 0 recommended_config.yaml 경로 ($ANALYSIS_CONFIG). '
+             '우선순위: CLI > config > 기본값',
+    )
 
     args = parser.parse_args()
-    
+
+    cfg = load_recommended_config(args.config)
+    pp_cfg = get_pipeline_params(cfg)
+    args.compositions_per_roi = int(round(
+        resolve(args.compositions_per_roi, pp_cfg.get('compositions_per_roi'), 1)
+    ))
+    # COMPATIBILITY_MATRIX를 subtype_compatibility_matrix로 교체 (옵션 C)
+    raw_matrix = cfg.get('subtype_compatibility_matrix')
+    if isinstance(raw_matrix, dict) and raw_matrix:
+        sanitized = {}
+        for subtype, scores in raw_matrix.items():
+            if not isinstance(scores, dict):
+                continue
+            # _n_instances는 메타 키이므로 제거, 숫자 값만 float 변환
+            filtered = {k: float(v) for k, v in scores.items()
+                        if k != '_n_instances' and isinstance(v, (int, float))}
+            if filtered:
+                sanitized[subtype] = filtered
+        if sanitized:
+            COMPATIBILITY_MATRIX.clear()
+            COMPATIBILITY_MATRIX.update(sanitized)
+            logger.info(
+                f"COMPATIBILITY_MATRIX 교체: {args.config} "
+                f"({len(sanitized)} subtypes, subtype_compatibility_matrix)"
+            )
+
     # blend_mode 문자열 → OpenCV 상수 변환
     blend_mode = (
         cv2.NORMAL_CLONE if args.blend_mode == "NORMAL_CLONE"

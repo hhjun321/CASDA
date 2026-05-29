@@ -40,6 +40,8 @@ Usage:
 
 import os
 import sys
+import shutil
+import tempfile
 import argparse
 import logging
 import random
@@ -53,6 +55,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+try:
+    import torch_fidelity
+    HAS_TORCH_FIDELITY = True
+except ImportError:
+    HAS_TORCH_FIDELITY = False
+
 # ── 프로젝트 루트 설정 ──
 # NOTE: scripts/__init__.py가 없으므로 `from scripts.utils import ...` 전에
 # 프로젝트 루트를 sys.path에 먼저 추가해야 한다.
@@ -62,6 +70,70 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.utils import load_config, remove_empty_classes, sample_images  # noqa: E402
 from src.training.metrics import FIDCalculator  # noqa: E402
+
+
+# ============================================================================
+# KID 헬퍼 — torch-fidelity 기반 (FIDCalculator와 독립적으로 동작)
+# ============================================================================
+
+def _compute_kid_for_paths(
+    real_paths: list,
+    gen_paths: list,
+    tmp_dir: Path,
+    name: str,
+    device: str = 'cuda',
+) -> dict:
+    """파일 경로 리스트를 받아 KID를 계산한다.
+
+    torch-fidelity는 디렉토리 입력만 허용하므로, 임시 디렉토리에
+    symlink(Linux/Colab) 또는 copy(Windows fallback)를 생성해 전달한다.
+    """
+    if not HAS_TORCH_FIDELITY:
+        return {"error": "torch_fidelity not installed. Run: pip install torch-fidelity"}
+    n = min(len(real_paths), len(gen_paths))
+    if n < 10:
+        return {"error": f"insufficient samples: real={len(real_paths)}, gen={len(gen_paths)}"}
+
+    real_dir = tmp_dir / f"{name}_real"
+    gen_dir  = tmp_dir / f"{name}_gen"
+    real_dir.mkdir(parents=True, exist_ok=True)
+    gen_dir.mkdir(parents=True, exist_ok=True)
+
+    for paths, dst in [(real_paths, real_dir), (gen_paths, gen_dir)]:
+        for i, p in enumerate(paths):
+            src = Path(p)
+            dst_file = dst / f"{i:06d}{src.suffix}"
+            try:
+                os.symlink(src.resolve(), dst_file)
+            except OSError:
+                shutil.copy2(src, dst_file)
+
+    subset = min(n, 1000)
+    # kid_subsets: 소규모 데이터셋에서 torch_fidelity가 subset보다 큰 pool을
+    # 요구할 때 ValueError가 발생하지 않도록 n // subset으로 상한 설정
+    kid_subsets = max(1, min(100, n // subset))
+    try:
+        out = torch_fidelity.calculate_metrics(
+            input1=str(real_dir),
+            input2=str(gen_dir),
+            kid=True,
+            fid=False,
+            isc=False,
+            prc=False,
+            kid_subset_size=subset,
+            kid_subsets=kid_subsets,
+            cuda=(device == 'cuda'),
+            verbose=False,
+        )
+        return {
+            "mean": float(out["kernel_inception_distance_mean"]),
+            "std":  float(out["kernel_inception_distance_std"]),
+            "n_real": len(real_paths),
+            "n_gen":  len(gen_paths),
+            "subset_size": subset,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ============================================================================
@@ -738,6 +810,32 @@ def run_fid_evaluation(config: dict, experiment_dir: Path, device: str = 'cuda')
                     # "Class1_FID" → "Class1_FID_roi"
                     results[f"{k}_roi"] = v
 
+            # KID-ROI 계산 (overall + per-class)
+            with tempfile.TemporaryDirectory() as kid_tmp:
+                kid_tmp_path = Path(kid_tmp)
+                roi_kid = _compute_kid_for_paths(
+                    roi_real_sampled, roi_gen_sampled,
+                    kid_tmp_path, "roi_overall", device)
+                if "error" not in roi_kid:
+                    results['kid_roi_overall_mean'] = roi_kid["mean"]
+                    results['kid_roi_overall_std']  = roi_kid["std"]
+                else:
+                    results.setdefault('kid_errors', {})['roi_overall'] = roi_kid["error"]
+                    logging.warning(f"  KID-ROI overall 실패: {roi_kid['error']}")
+
+                if per_class and roi_real_by_class and roi_gen_by_class:
+                    for cid in sorted(roi_gen_by_class.keys()):
+                        r_paths = roi_real_by_class.get(cid, [])
+                        g_paths = roi_gen_by_class.get(cid, [])
+                        cls_kid = _compute_kid_for_paths(
+                            r_paths, g_paths,
+                            kid_tmp_path, f"roi_cls{cid}", device)
+                        if "error" not in cls_kid:
+                            results[f'kid_roi_class{cid + 1}_mean'] = cls_kid["mean"]
+                            results[f'kid_roi_class{cid + 1}_std']  = cls_kid["std"]
+                        else:
+                            results.setdefault('kid_errors', {})[f'roi_cls{cid + 1}'] = cls_kid["error"]
+
             # ==============================================================
             # FID-ROI 세분화 분석 (defect_subtype, background_type, 교차)
             # roi_metadata.csv의 메타데이터를 활용하여 세분화 FID 계산
@@ -952,6 +1050,33 @@ def run_fid_evaluation(config: dict, experiment_dir: Path, device: str = 'cuda')
 
                 # 하위 호환: fid_overall = fid_composed_overall
                 results['fid_overall'] = results.get('fid_composed_overall', float('inf'))
+
+                # KID-Composed 계산 (overall + per-class)
+                with tempfile.TemporaryDirectory() as kid_tmp:
+                    kid_tmp_path = Path(kid_tmp)
+                    comp_kid = _compute_kid_for_paths(
+                        real_sampled, comp_sampled,
+                        kid_tmp_path, "comp_overall", device)
+                    if "error" not in comp_kid:
+                        results['kid_composed_overall_mean'] = comp_kid["mean"]
+                        results['kid_composed_overall_std']  = comp_kid["std"]
+                    else:
+                        results.setdefault('kid_errors', {})['comp_overall'] = comp_kid["error"]
+                        logging.warning(f"  KID-Composed overall 실패: {comp_kid['error']}")
+
+                    if per_class and comp_real_by_class and comp_gen_by_class:
+                        for cid in sorted(comp_gen_by_class.keys()):
+                            r_paths = comp_real_by_class.get(cid, [])
+                            g_paths = comp_gen_by_class.get(cid, [])
+                            cls_kid = _compute_kid_for_paths(
+                                r_paths, g_paths,
+                                kid_tmp_path, f"comp_cls{cid}", device)
+                            if "error" not in cls_kid:
+                                results[f'kid_composed_class{cid + 1}_mean'] = cls_kid["mean"]
+                                results[f'kid_composed_class{cid + 1}_std']  = cls_kid["std"]
+                            else:
+                                results.setdefault('kid_errors', {})[f'comp_cls{cid + 1}'] = cls_kid["error"]
+
             else:
                 logging.warning("  No composed images found — fid_composed 건너뜀")
                 results['fid_composed_overall'] = float('inf')
@@ -973,6 +1098,13 @@ def run_fid_evaluation(config: dict, experiment_dir: Path, device: str = 'cuda')
                 logging.info(f"  {key}: {val:.2f}")
             else:
                 logging.info(f"  {key}: {val}")
+    for key in ['kid_roi_overall_mean', 'kid_composed_overall_mean']:
+        if key in results:
+            val = results[key]
+            logging.info(f"  {key}: {val:.4f}")
+    if 'kid_errors' in results:
+        for k, err in results['kid_errors'].items():
+            logging.warning(f"  KID 오류 [{k}]: {err}")
 
     # 세분화 FID-ROI 요약
     for granular_key in ['fid_roi_by_defect_subtype', 'fid_roi_by_background_type',

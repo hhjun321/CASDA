@@ -26,7 +26,6 @@ class DefectCharacterizer:
         'low_aspect_ratio':     2.0,
         'high_solidity':        0.9,
         'low_solidity':         0.7,
-        'elongated_linearity':  0.6,
     }
 
     def __init__(self, thresholds: Optional[dict] = None):
@@ -43,7 +42,6 @@ class DefectCharacterizer:
         self.low_aspect_ratio    = float(t.get('low_aspect_ratio',    d['low_aspect_ratio']))
         self.high_solidity       = float(t.get('high_solidity',       d['high_solidity']))
         self.low_solidity        = float(t.get('low_solidity',        d['low_solidity']))
-        self.elongated_linearity = float(t.get('elongated_linearity', d['elongated_linearity']))
     
     def compute_linearity(self, region) -> float:
         """
@@ -217,10 +215,9 @@ class DefectCharacterizer:
         
         Sub-types:
         - 'linear_scratch': High linearity + high aspect ratio
-        - 'blob': Low linearity + low aspect ratio + high solidity
         - 'irregular': Low solidity
-        - 'elongated': High aspect ratio + medium linearity
-        - 'compact': Low aspect ratio + high solidity
+        - 'compact_blob': Low aspect ratio + high solidity
+        - 'general': fallthrough
         
         Args:
             metrics: Dictionary with linearity, solidity, extent, aspect_ratio
@@ -236,8 +233,6 @@ class DefectCharacterizer:
             return 'linear_scratch'
         elif solidity < self.low_solidity:
             return 'irregular'
-        elif aspect_ratio > self.high_aspect_ratio and linearity > self.elongated_linearity:
-            return 'elongated'
         elif aspect_ratio < self.low_aspect_ratio and solidity > self.high_solidity:
             return 'compact_blob'
         else:

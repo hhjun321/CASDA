@@ -29,13 +29,6 @@ class ROISuitabilityEvaluator:
             BackgroundType.TEXTURED.value: 0.5,
             BackgroundType.COMPLEX_PATTERN.value: 0.3,
         },
-        'elongated': {
-            BackgroundType.VERTICAL_STRIPE.value: 0.9,
-            BackgroundType.HORIZONTAL_STRIPE.value: 0.9,
-            BackgroundType.SMOOTH.value: 0.8,
-            BackgroundType.TEXTURED.value: 0.6,
-            BackgroundType.COMPLEX_PATTERN.value: 0.4,
-        },
         'compact_blob': {
             BackgroundType.SMOOTH.value: 1.0,
             BackgroundType.TEXTURED.value: 0.7,
@@ -319,7 +312,6 @@ class ROISuitabilityEvaluator:
         # Defect descriptions
         defect_desc = {
             'linear_scratch': 'a linear scratch defect',
-            'elongated': 'an elongated defect',
             'compact_blob': 'a compact blob defect',
             'irregular': 'an irregular defect',
             'general': 'a defect'

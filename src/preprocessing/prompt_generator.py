@@ -24,11 +24,6 @@ class PromptGenerator:
             'detailed': 'a high-linearity elongated scratch',
             'characteristics': ['linear', 'scratch-like', 'elongated']
         },
-        'elongated': {
-            'base': 'an elongated defect',
-            'detailed': 'a moderately elongated defect region',
-            'characteristics': ['elongated', 'stretched']
-        },
         'compact_blob': {
             'base': 'a compact blob defect',
             'detailed': 'a solid compact defect spot',
@@ -232,11 +227,6 @@ class PromptGenerator:
             characteristics.append("solid")
         elif solidity < 0.7:
             characteristics.append("irregular shape")
-        
-        if aspect_ratio > 5.0:
-            characteristics.append("very elongated")
-        elif aspect_ratio > 3.0:
-            characteristics.append("elongated")
         
         char_str = ", ".join(characteristics) if characteristics else defect_info['characteristics'][0]
         
