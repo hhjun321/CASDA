@@ -34,13 +34,6 @@ class DefectTemplateBuilder:
             'textured': 0.5,
             'complex_pattern': 0.3,
         },
-        'elongated': {
-            'vertical_stripe': 0.9,
-            'horizontal_stripe': 0.9,
-            'smooth': 0.8,
-            'textured': 0.6,
-            'complex_pattern': 0.4,
-        },
         'compact_blob': {
             'smooth': 1.0,
             'textured': 0.7,

@@ -70,13 +70,6 @@ class BackgroundLibrary:
             'textured': 0.5,          # Acceptable
             'complex_pattern': 0.2    # Poor
         },
-        'elongated_region': {
-            'smooth': 0.8,            # Good
-            'vertical_stripe': 1.0,   # Perfect contrast
-            'horizontal_stripe': 1.0, # Perfect contrast
-            'textured': 0.5,          # Acceptable
-            'complex_pattern': 0.2    # Poor
-        }
     }
     
     def __init__(self, metadata_csv_path: Path):

@@ -86,7 +86,7 @@ _B_BGT  = 3; _B_VAR  = 5; _B_ETOT = 8
 _B_VRAT = 10; _B_HRAT = 11; _B_HFQ = 12
 
 BG_TYPES  = ["smooth", "textured", "vertical_stripe", "horizontal_stripe", "complex_pattern"]
-SUBTYPES  = ["linear_scratch", "irregular", "elongated", "compact_blob", "general"]
+SUBTYPES  = ["linear_scratch", "irregular", "compact_blob", "general"]
 CLASS_IDS = [1, 2, 3, 4]
 
 # Current hardcoded values — used as fallback and for "current" column in report
@@ -97,7 +97,6 @@ HARDCODED = {
     "LOW_ASPECT_RATIO":      2.0,
     "HIGH_SOLIDITY":         0.9,
     "LOW_SOLIDITY":          0.7,
-    "elongated_linearity":   0.6,
     "variance_threshold":    100.0,
     "edge_threshold":        0.3,
     "total_strength":        1.0,
@@ -257,13 +256,31 @@ def _otsu_1d(values: np.ndarray) -> float | None:
     return threshold
 
 
+def _log_otsu(values: np.ndarray) -> float | None:
+    """log1p 변환 후 Otsu 적용, expm1으로 역변환. 장꼬리 분포 대응."""
+    pos = values[values >= 0]
+    if len(pos) < 50:
+        return None
+    log_vals = np.log1p(pos)
+    t_log = _otsu_1d(log_vals)
+    if t_log is None:
+        return None
+    t = float(np.expm1(t_log))
+    if not np.isfinite(t) or t <= 0:
+        return None
+    if not (float(pos.min()) < t < float(pos.max())):
+        return None
+    return t
+
+
 def derive_threshold(
     values: np.ndarray,
     hard_default: float,
     pct_fallback: int = 75,
+    use_log_otsu: bool = False,
 ) -> tuple[float, str]:
     """
-    Ladder: valley → Otsu_1D → percentile → hardcoded.
+    Ladder: valley → [log_otsu] → Otsu_1D → percentile → hardcoded.
     Returns (recommended_value, method_string).
     """
     finite = values[np.isfinite(values)] if len(values) else values
@@ -273,6 +290,11 @@ def derive_threshold(
     v = _valley_threshold(finite)
     if v is not None and float(finite.min()) < v < float(finite.max()):
         return round(v, 4), "valley"
+
+    if use_log_otsu:
+        lo = _log_otsu(finite)
+        if lo is not None:
+            return round(lo, 4), "log_otsu"
 
     o = _otsu_1d(finite)
     if o is not None and float(finite.min()) < o < float(finite.max()):
@@ -587,10 +609,10 @@ def render_figures(
             ], dtype=float)
             im = ax.imshow(heat, aspect="auto", cmap="RdYlGn", vmin=0, vmax=1)
             plt.colorbar(im, ax=ax, label="score")
-            ax.set_xticks(range(5)); ax.set_xticklabels(BG_TYPES, rotation=18, ha="right")
-            ax.set_yticks(range(5)); ax.set_yticklabels(SUBTYPES)
-            for i in range(5):
-                for j in range(5):
+            ax.set_xticks(range(len(BG_TYPES))); ax.set_xticklabels(BG_TYPES, rotation=18, ha="right")
+            ax.set_yticks(range(len(SUBTYPES))); ax.set_yticklabels(SUBTYPES)
+            for i in range(len(SUBTYPES)):
+                for j in range(len(BG_TYPES)):
                     v = heat[i, j]
                     color = "white" if v > 0.7 or v < 0.3 else "black"
                     ax.text(j, i, f"{v:.2f}", ha="center", va="center",
@@ -603,7 +625,7 @@ def render_figures(
         else:
             axes[1].axis("off")
 
-        fig.suptitle("Subtype × Background Compatibility (5×5)\nLeft: 데이터기반  Right: 논문 prior",
+        fig.suptitle(f"Subtype × Background Compatibility ({len(SUBTYPES)}×{len(BG_TYPES)})\nLeft: 데이터기반  Right: 논문 prior",
                      fontweight="bold")
         plt.tight_layout()
         _savefig(figures_dir, "fig10_subtype_bg_compat_heatmap.png")
@@ -938,6 +960,7 @@ def main() -> None:
 
     # ── 단일 임계값 도출 (derive_threshold ladder 유지) ──────────────────────────
     threshold_specs = [
+<<<<<<< HEAD
         # (name,                  array,                  default,  pct,  derivable)
         ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True),
         ("elongated_linearity",   arr["linearity"],        0.6,     50,   True),
@@ -952,8 +975,28 @@ def main() -> None:
     ]
 
     for name, data, default, pct, derivable in threshold_specs:
+=======
+        # (name,                  array,                  default,  pct,  derivable, use_log_otsu)
+        ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True,  False),
+        ("HIGH_ASPECT_RATIO",     arr["aspect_ratio"],     5.0,     90,   True,  False),
+        ("LOW_ASPECT_RATIO",      arr["aspect_ratio"],     2.0,     25,   True,  False),
+        ("HIGH_SOLIDITY",         arr["solidity"],         0.9,     90,   True,  False),
+        ("LOW_SOLIDITY",          arr["solidity"],         0.7,     25,   True,  False),
+        ("variance_threshold",    bar["variance"],         100.0,   50,   True,  True),
+        ("edge_threshold",        bar["v_ratio"],          0.3,     75,   True,  False),
+        ("total_strength",        bar["edge_total"],       1.0,     10,   True,  False),
+        ("stripe_ratio_v",        stripe_ratios,           1.5,     75,   True,  False),
+        ("stripe_ratio_h",        stripe_ratios,           1.5,     75,   True,  False),
+        ("high_freq_ratio",       bar["high_freq_ratio"],  0.3,     50,   True,  False),
+        ("min_suitability",       np.array([]),            0.5,     25,   False, False),
+        ("min_quality_score",     np.array([]),            0.5,     25,   False, False),
+    ]
+
+    threshold_recs = {}
+    for name, data, default, pct, derivable, use_log_otsu in threshold_specs:
+>>>>>>> 33ad8772cc123f15477f4eb238512e14f71a6286
         if derivable:
-            val, method = derive_threshold(data, default, pct)
+            val, method = derive_threshold(data, default, pct, use_log_otsu=use_log_otsu)
         else:
             val, method = default, "hardcoded(not_derivable_in_stage0)"
         threshold_recs[name] = {
@@ -1033,7 +1076,7 @@ def main() -> None:
             k: threshold_recs[k]["recommended"]
             for k in [
                 "HIGH_LINEARITY", "HIGH_ASPECT_RATIO", "LOW_ASPECT_RATIO",
-                "HIGH_SOLIDITY", "LOW_SOLIDITY", "elongated_linearity",
+                "HIGH_SOLIDITY", "LOW_SOLIDITY",
             ]
         },
         "background_analyzer_thresholds": {

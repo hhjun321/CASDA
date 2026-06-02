@@ -28,6 +28,7 @@ from skimage.metrics import structural_similarity as ssim
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.analysis.defect_characterization import DefectCharacterizer
+from src.utils.config_loader import load_recommended_config, get_pipeline_params, resolve
 
 
 # ======================================================================
@@ -468,16 +469,28 @@ def main():
     parser.add_argument(
         '--min_quality_score',
         type=float,
-        default=0.7,
-        help='Minimum quality score threshold'
+        default=None,
+        help='최소 품질 점수 임계값 (기본: YAML 값 또는 0.7). '
+             '우선순위: CLI > --config YAML > 0.7'
     )
     parser.add_argument(
         '--workers', type=int, default=0,
         help='병렬 워커 수 (기본 0 = 순차 처리, -1 = CPU 코어 수 자동 감지, '
              'N >= 2 = N개 프로세스 병렬 처리)',
     )
-    
+    parser.add_argument(
+        '--config',
+        type=str,
+        default=None,
+        help='Stage 0 recommended_config.yaml 경로 ($ANALYSIS_CONFIG). '
+             '우선순위: CLI > config > 기본값'
+    )
+
     args = parser.parse_args()
+
+    cfg = load_recommended_config(args.config)
+    pp_cfg = get_pipeline_params(cfg)
+    args.min_quality_score = resolve(args.min_quality_score, pp_cfg.get('min_quality_score'), 0.7)
     
     # 워커 수 결정
     num_workers = args.workers
