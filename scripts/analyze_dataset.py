@@ -960,17 +960,17 @@ def main() -> None:
 
     # ── 단일 임계값 도출 (derive_threshold ladder 유지) ──────────────────────────
     threshold_specs = [
-        # (name,                  array,                  default,  pct,  derivable)
-        ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True),
-        ("elongated_linearity",   arr["linearity"],        0.6,     50,   True),
-        ("variance_threshold",    bar["variance"],         100.0,   50,   True),
-        ("edge_threshold",        bar["v_ratio"],          0.3,     75,   True),
-        ("total_strength",        bar["edge_total"],       1.0,     10,   True),
-        ("stripe_ratio_v",        stripe_ratios,           1.5,     75,   True),
-        ("stripe_ratio_h",        stripe_ratios,           1.5,     75,   True),
-        ("high_freq_ratio",       bar["high_freq_ratio"],  0.3,     50,   True),
-        ("min_suitability",       np.array([]),            0.5,     25,   False),
-        ("min_quality_score",     np.array([]),            0.5,     25,   False),
+        # (name,                  array,                  default,  pct,  derivable, use_log_otsu)
+        ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True,  False),
+        ("elongated_linearity",   arr["linearity"],        0.6,     50,   True,  False),
+        ("variance_threshold",    bar["variance"],         100.0,   50,   True,  True),
+        ("edge_threshold",        bar["v_ratio"],          0.3,     75,   True,  False),
+        ("total_strength",        bar["edge_total"],       1.0,     10,   True,  False),
+        ("stripe_ratio_v",        stripe_ratios,           1.5,     75,   True,  False),
+        ("stripe_ratio_h",        stripe_ratios,           1.5,     75,   True,  False),
+        ("high_freq_ratio",       bar["high_freq_ratio"],  0.3,     50,   True,  False),
+        ("min_suitability",       np.array([]),            0.5,     25,   False, False),
+        ("min_quality_score",     np.array([]),            0.5,     25,   False, False),
     ]
 
     for name, data, default, pct, derivable, use_log_otsu in threshold_specs:
