@@ -53,21 +53,18 @@ class BackgroundLibrary:
             'smooth': 1.0,           # Perfect for isolated blobs
             'vertical_stripe': 0.8,   # Good contrast
             'horizontal_stripe': 0.8, # Good contrast
-            'textured': 0.5,          # May blend in
             'complex_pattern': 0.2    # Poor visibility
         },
         'linear_scratch': {
             'smooth': 0.8,            # Good visibility
             'vertical_stripe': 1.0,   # Perfect if horizontal scratch
             'horizontal_stripe': 1.0, # Perfect if vertical scratch
-            'textured': 0.5,          # May blend
             'complex_pattern': 0.2    # Poor contrast
         },
         'scattered_defects': {
             'smooth': 1.0,            # Perfect visibility
             'vertical_stripe': 0.8,   # Good
             'horizontal_stripe': 0.8, # Good
-            'textured': 0.5,          # Acceptable
             'complex_pattern': 0.2    # Poor
         },
     }

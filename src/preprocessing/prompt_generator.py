@@ -48,11 +48,6 @@ class PromptGenerator:
             'texture': 'uniform texture',
             'pattern': 'no visible pattern'
         },
-        'textured': {
-            'surface': 'textured metal surface',
-            'texture': 'grainy texture',
-            'pattern': 'subtle surface texture'
-        },
         'vertical_stripe': {
             'surface': 'vertical striped metal surface',
             'texture': 'directional texture',

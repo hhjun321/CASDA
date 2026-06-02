@@ -92,21 +92,20 @@ logger = logging.getLogger(__name__)
 COMPATIBILITY_MATRIX = {
     'compact_blob': {
         'smooth': 1.0, 'vertical_stripe': 0.8, 'horizontal_stripe': 0.8,
-        'textured': 0.5, 'complex_pattern': 0.2,
+        'complex_pattern': 0.2,
     },
     'linear_scratch': {
         'smooth': 0.8, 'vertical_stripe': 1.0, 'horizontal_stripe': 1.0,
-        'textured': 0.5, 'complex_pattern': 0.2,
+        'complex_pattern': 0.2,
     },
     'scattered_defects': {
         'smooth': 1.0, 'vertical_stripe': 0.8, 'horizontal_stripe': 0.8,
-        'textured': 0.5, 'complex_pattern': 0.2,
+        'complex_pattern': 0.2,
     },
 }
 
 # 모든 배경 유형 (호환성 없을 때 폴백용)
-ALL_BACKGROUND_TYPES = ['smooth', 'vertical_stripe', 'horizontal_stripe',
-                        'textured', 'complex_pattern']
+ALL_BACKGROUND_TYPES = ['smooth', 'vertical_stripe', 'horizontal_stripe', 'complex_pattern']
 
 
 # ============================================================================
@@ -163,7 +162,7 @@ def classify_background_simple(image: np.ndarray) -> str:
     128x128 패치로 축소하여 연산량을 줄임 (256x256 대비 4배 빠름).
     
     Returns:
-        'smooth', 'vertical_stripe', 'horizontal_stripe', 'textured', 'complex_pattern'
+        'smooth', 'vertical_stripe', 'horizontal_stripe', 'complex_pattern'
     """
     h, w = image.shape[:2]
     
@@ -215,10 +214,10 @@ def classify_background_simple(image: np.ndarray) -> str:
     if edge_density > 0.15:
         return 'complex_pattern'
     
-    # 나머지는 textured
+    # 나머지는 complex_pattern으로 흡수
     if variance > 500 or edge_density > 0.05:
-        return 'textured'
-    
+        return 'complex_pattern'
+
     return 'smooth'
 
 

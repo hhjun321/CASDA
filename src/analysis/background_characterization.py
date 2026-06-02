@@ -4,10 +4,9 @@ Background Characterization Module
 This module analyzes background textures using grid-based classification.
 According to PROJECT(roi).md, it identifies background types:
 - 'smooth': Low variance, flat surface
-- 'textured': High variance, patterned surface
 - 'vertical_stripe': Strong vertical edge patterns
 - 'horizontal_stripe': Strong horizontal edge patterns
-- 'complex_pattern': Multi-directional edge patterns
+- 'complex_pattern': Multi-directional edge patterns or weak-edge non-smooth surfaces
 
 This helps determine suitable backgrounds for synthetic defect placement.
 """
@@ -20,7 +19,6 @@ from enum import Enum
 class BackgroundType(Enum):
     """Background texture types"""
     SMOOTH = 'smooth'
-    TEXTURED = 'textured'
     VERTICAL_STRIPE = 'vertical_stripe'
     HORIZONTAL_STRIPE = 'horizontal_stripe'
     COMPLEX_PATTERN = 'complex_pattern'
@@ -32,7 +30,7 @@ class BackgroundAnalyzer:
     """
     
     DEFAULT_THRESHOLDS: dict = {
-        'weak_edge':      1.0,    # classify_patch: total_strength < weak_edge → TEXTURED
+        'weak_edge':      1.0,    # classify_patch: total_strength < weak_edge → COMPLEX_PATTERN
         'stripe_ratio_v': 1.5,    # v_ratio > h_ratio * stripe_ratio_v → VERTICAL_STRIPE
         'stripe_ratio_h': 1.5,    # h_ratio > v_ratio * stripe_ratio_h → HORIZONTAL_STRIPE
         'complex_freq':   0.3,    # high_freq_ratio > complex_freq → COMPLEX_PATTERN
@@ -46,7 +44,7 @@ class BackgroundAnalyzer:
 
         Args:
             grid_size: Size of grid patches (64x64 or 128x128)
-            variance_threshold: Threshold to distinguish smooth vs textured
+            variance_threshold: Threshold to distinguish smooth vs non-smooth
             edge_threshold: Threshold for edge direction analysis
             thresholds: classify_patch 세부 임계값 dict (weak_edge, stripe_ratio_v,
                 stripe_ratio_h, complex_freq). 누락 키는 DEFAULT_THRESHOLDS로 보충.
@@ -168,8 +166,8 @@ class BackgroundAnalyzer:
         h_strength = edge_info['horizontal']
         total_strength = edge_info['total']
         
-        if total_strength < self.weak_edge:  # Very weak edges
-            return BackgroundType.TEXTURED, 0.5
+        if total_strength < self.weak_edge:  # Very weak edges — absorbed into complex_pattern
+            return BackgroundType.COMPLEX_PATTERN, 0.5
         
         # Normalize strengths
         v_ratio = v_strength / (total_strength + 1e-6)
@@ -187,8 +185,8 @@ class BackgroundAnalyzer:
             stability = 1.0 - freq_info['high_freq_ratio']
             return BackgroundType.COMPLEX_PATTERN, float(np.clip(stability, 0.0, 1.0))
         
-        return BackgroundType.TEXTURED, 0.5
-    
+        return BackgroundType.COMPLEX_PATTERN, 0.5
+
     def analyze_image(self, image: np.ndarray) -> Dict:
         """
         Analyze entire image using grid-based approach.

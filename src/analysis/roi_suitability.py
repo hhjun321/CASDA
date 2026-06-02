@@ -26,26 +26,22 @@ class ROISuitabilityEvaluator:
             BackgroundType.VERTICAL_STRIPE.value: 1.0,
             BackgroundType.HORIZONTAL_STRIPE.value: 1.0,
             BackgroundType.SMOOTH.value: 0.7,
-            BackgroundType.TEXTURED.value: 0.5,
             BackgroundType.COMPLEX_PATTERN.value: 0.3,
         },
         'compact_blob': {
             BackgroundType.SMOOTH.value: 1.0,
-            BackgroundType.TEXTURED.value: 0.7,
             BackgroundType.VERTICAL_STRIPE.value: 0.5,
             BackgroundType.HORIZONTAL_STRIPE.value: 0.5,
             BackgroundType.COMPLEX_PATTERN.value: 0.6,
         },
         'irregular': {
             BackgroundType.COMPLEX_PATTERN.value: 1.0,
-            BackgroundType.TEXTURED.value: 0.8,
             BackgroundType.SMOOTH.value: 0.6,
             BackgroundType.VERTICAL_STRIPE.value: 0.5,
             BackgroundType.HORIZONTAL_STRIPE.value: 0.5,
         },
         'general': {
             BackgroundType.SMOOTH.value: 0.7,
-            BackgroundType.TEXTURED.value: 0.7,
             BackgroundType.VERTICAL_STRIPE.value: 0.7,
             BackgroundType.HORIZONTAL_STRIPE.value: 0.7,
             BackgroundType.COMPLEX_PATTERN.value: 0.7,
@@ -320,7 +316,7 @@ class ROISuitabilityEvaluator:
         # Background descriptions
         bg_desc = {
             BackgroundType.SMOOTH.value: 'smooth metal surface',
-            BackgroundType.TEXTURED.value: 'textured metal surface',
+
             BackgroundType.VERTICAL_STRIPE.value: 'vertical striped metal surface',
             BackgroundType.HORIZONTAL_STRIPE.value: 'horizontal striped metal surface',
             BackgroundType.COMPLEX_PATTERN.value: 'complex patterned metal surface'

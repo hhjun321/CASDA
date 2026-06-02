@@ -109,7 +109,7 @@ class HintImageGenerator:
         - vertical_stripe: Vertical edges
         - horizontal_stripe: Horizontal edges
         - complex_pattern: All edges
-        - smooth/textured: Minimal edges
+        - smooth: Minimal edges
         
         Args:
             image: Original ROI image (H, W, 3) or (H, W)
@@ -147,7 +147,7 @@ class HintImageGenerator:
             # Use all edges
             edge_map = np.sqrt(sobel_x**2 + sobel_y**2)
             
-        else:  # smooth or textured
+        else:  # smooth
             # Minimal edge information
             edge_map = np.sqrt(sobel_x**2 + sobel_y**2) * 0.3
         
@@ -168,7 +168,7 @@ class HintImageGenerator:
         
         Captures high-frequency texture information:
         - smooth: Low values
-        - textured/complex: High-frequency components
+        - complex_pattern: High-frequency components
         
         Args:
             image: Original ROI image (H, W, 3) or (H, W)
@@ -207,7 +207,7 @@ class HintImageGenerator:
             blue_channel = cv2.normalize(local_var, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
             
             # Adjust intensity based on background type
-            if background_type in ['textured', 'complex_pattern']:
+            if background_type in ['complex_pattern']:
                 # Higher texture emphasis
                 blue_channel = np.clip(blue_channel * 1.2, 0, 255).astype(np.uint8)
         

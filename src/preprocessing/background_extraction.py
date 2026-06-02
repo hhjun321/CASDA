@@ -23,7 +23,7 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from tqdm import tqdm
 
-from ..analysis.background_characterization import BackgroundCharacterizer
+from ..analysis.background_characterization import BackgroundAnalyzer
 
 
 @dataclass
@@ -77,7 +77,7 @@ class BackgroundExtractor:
         self.rois_per_image = rois_per_image
         
         # Initialize background characterizer
-        self.bg_characterizer = BackgroundCharacterizer(
+        self.bg_characterizer = BackgroundAnalyzer(
             grid_size=grid_size,
             variance_threshold=50.0,
             edge_threshold=0.3
@@ -88,7 +88,6 @@ class BackgroundExtractor:
             'smooth',
             'vertical_stripe',
             'horizontal_stripe',
-            'textured',
             'complex_pattern'
         ]
     

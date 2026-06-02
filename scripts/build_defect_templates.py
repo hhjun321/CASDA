@@ -31,26 +31,22 @@ class DefectTemplateBuilder:
             'vertical_stripe': 1.0,
             'horizontal_stripe': 1.0,
             'smooth': 0.7,
-            'textured': 0.5,
             'complex_pattern': 0.3,
         },
         'compact_blob': {
             'smooth': 1.0,
-            'textured': 0.7,
             'vertical_stripe': 0.5,
             'horizontal_stripe': 0.5,
             'complex_pattern': 0.6,
         },
         'irregular': {
             'complex_pattern': 1.0,
-            'textured': 0.8,
             'smooth': 0.6,
             'vertical_stripe': 0.5,
             'horizontal_stripe': 0.5,
         },
         'general': {
             'smooth': 0.7,
-            'textured': 0.7,
             'vertical_stripe': 0.7,
             'horizontal_stripe': 0.7,
             'complex_pattern': 0.7,
@@ -170,7 +166,7 @@ class DefectTemplateBuilder:
             List of compatible background types
         """
         if defect_subtype not in self.MATCHING_RULES:
-            return ['smooth', 'textured', 'vertical_stripe', 'horizontal_stripe', 'complex_pattern']
+            return ['smooth', 'vertical_stripe', 'horizontal_stripe', 'complex_pattern']
         
         rules = self.MATCHING_RULES[defect_subtype]
         compatible = [bg_type for bg_type, score in rules.items() if score >= min_score]
