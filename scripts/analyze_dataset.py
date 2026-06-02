@@ -960,7 +960,6 @@ def main() -> None:
 
     # ── 단일 임계값 도출 (derive_threshold ladder 유지) ──────────────────────────
     threshold_specs = [
-<<<<<<< HEAD
         # (name,                  array,                  default,  pct,  derivable)
         ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True),
         ("elongated_linearity",   arr["linearity"],        0.6,     50,   True),
@@ -974,27 +973,7 @@ def main() -> None:
         ("min_quality_score",     np.array([]),            0.5,     25,   False),
     ]
 
-    for name, data, default, pct, derivable in threshold_specs:
-=======
-        # (name,                  array,                  default,  pct,  derivable, use_log_otsu)
-        ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True,  False),
-        ("HIGH_ASPECT_RATIO",     arr["aspect_ratio"],     5.0,     90,   True,  False),
-        ("LOW_ASPECT_RATIO",      arr["aspect_ratio"],     2.0,     25,   True,  False),
-        ("HIGH_SOLIDITY",         arr["solidity"],         0.9,     90,   True,  False),
-        ("LOW_SOLIDITY",          arr["solidity"],         0.7,     25,   True,  False),
-        ("variance_threshold",    bar["variance"],         100.0,   50,   True,  True),
-        ("edge_threshold",        bar["v_ratio"],          0.3,     75,   True,  False),
-        ("total_strength",        bar["edge_total"],       1.0,     10,   True,  False),
-        ("stripe_ratio_v",        stripe_ratios,           1.5,     75,   True,  False),
-        ("stripe_ratio_h",        stripe_ratios,           1.5,     75,   True,  False),
-        ("high_freq_ratio",       bar["high_freq_ratio"],  0.3,     50,   True,  False),
-        ("min_suitability",       np.array([]),            0.5,     25,   False, False),
-        ("min_quality_score",     np.array([]),            0.5,     25,   False, False),
-    ]
-
-    threshold_recs = {}
     for name, data, default, pct, derivable, use_log_otsu in threshold_specs:
->>>>>>> 33ad8772cc123f15477f4eb238512e14f71a6286
         if derivable:
             val, method = derive_threshold(data, default, pct, use_log_otsu=use_log_otsu)
         else:
