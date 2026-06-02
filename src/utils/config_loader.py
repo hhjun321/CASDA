@@ -26,6 +26,7 @@ _RANGES: dict[str, tuple[float, float]] = {
     'low_aspect_ratio':     (1.0, 100.0),
     'high_solidity':        (0.0, 1.0),
     'low_solidity':         (0.0, 1.0),
+    'irregular_solidity':   (0.0, 1.0),
     # BackgroundAnalyzer (내부 인자명 기준)
     'variance_threshold':   (0.0, 1e6),
     'edge_threshold':       (0.0, 1.0),
@@ -107,6 +108,7 @@ _DEFECT_KEY_MAP: dict[str, str] = {
     'LOW_ASPECT_RATIO':     'low_aspect_ratio',
     'HIGH_SOLIDITY':        'high_solidity',
     'LOW_SOLIDITY':         'low_solidity',
+    'IRREGULAR_SOLIDITY':   'irregular_solidity',
 }
 
 # BackgroundAnalyzer YAML 키 → __init__ 인자명 매핑

@@ -26,6 +26,7 @@ class DefectCharacterizer:
         'low_aspect_ratio':     2.0,
         'high_solidity':        0.9,
         'low_solidity':         0.7,
+        'irregular_solidity':   0.75,   # irregular 상한 (low_solidity에서 분리)
     }
 
     def __init__(self, thresholds: Optional[dict] = None):
@@ -42,6 +43,7 @@ class DefectCharacterizer:
         self.low_aspect_ratio    = float(t.get('low_aspect_ratio',    d['low_aspect_ratio']))
         self.high_solidity       = float(t.get('high_solidity',       d['high_solidity']))
         self.low_solidity        = float(t.get('low_solidity',        d['low_solidity']))
+        self.irregular_solidity  = float(t.get('irregular_solidity',  d['irregular_solidity']))
     
     def compute_linearity(self, region) -> float:
         """
@@ -215,7 +217,7 @@ class DefectCharacterizer:
         
         Sub-types:
         - 'linear_scratch': High linearity + high aspect ratio
-        - 'irregular': Low solidity
+        - 'irregular': Low solidity (below irregular_solidity threshold)
         - 'compact_blob': Low aspect ratio + high solidity
         - 'general': fallthrough
         
@@ -231,7 +233,7 @@ class DefectCharacterizer:
 
         if linearity > self.high_linearity and aspect_ratio > self.high_aspect_ratio:
             return 'linear_scratch'
-        elif solidity < self.low_solidity:
+        elif solidity < self.irregular_solidity:
             return 'irregular'
         elif aspect_ratio < self.low_aspect_ratio and solidity > self.high_solidity:
             return 'compact_blob'

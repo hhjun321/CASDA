@@ -97,6 +97,7 @@ HARDCODED = {
     "LOW_ASPECT_RATIO":      2.0,
     "HIGH_SOLIDITY":         0.9,
     "LOW_SOLIDITY":          0.7,
+    "IRREGULAR_SOLIDITY":    0.75,
     "variance_threshold":    100.0,
     "edge_threshold":        0.3,
     "total_strength":        1.0,
@@ -962,6 +963,7 @@ def main() -> None:
     threshold_specs = [
         # (name,                  array,                  default,  pct,  derivable, use_log_otsu)
         ("HIGH_LINEARITY",        arr["linearity"],        0.85,    85,   True,  False),
+        ("IRREGULAR_SOLIDITY",    np.array([]),            0.75,    75,   False, False),
         ("variance_threshold",    bar["variance"],         100.0,   50,   True,  True),
         ("edge_threshold",        bar["v_ratio"],          0.3,     75,   True,  False),
         ("total_strength",        bar["edge_total"],       1.0,     10,   True,  False),
@@ -1054,7 +1056,7 @@ def main() -> None:
             k: threshold_recs[k]["recommended"]
             for k in [
                 "HIGH_LINEARITY", "HIGH_ASPECT_RATIO", "LOW_ASPECT_RATIO",
-                "HIGH_SOLIDITY", "LOW_SOLIDITY",
+                "HIGH_SOLIDITY", "LOW_SOLIDITY", "IRREGULAR_SOLIDITY",
             ]
         },
         "background_analyzer_thresholds": {

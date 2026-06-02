@@ -401,6 +401,7 @@ class ROIExtractor:
                 'low_aspect_ratio':    self.defect_analyzer.low_aspect_ratio,
                 'high_solidity':       self.defect_analyzer.high_solidity,
                 'low_solidity':        self.defect_analyzer.low_solidity,
+                'irregular_solidity':  self.defect_analyzer.irregular_solidity,
             }
             bg_thresholds = {
                 'variance_threshold': self.background_analyzer.variance_threshold,
