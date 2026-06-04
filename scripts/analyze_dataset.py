@@ -311,9 +311,11 @@ def derive_high_low(
     low_default: float,
     high_pct: int = 90,
     low_pct: int = 25,
+    use_log_otsu_high: bool = False,
 ) -> tuple:
     """
-    HIGH/LOW 임계값을 분리 도출. Percentile(high_pct / low_pct) 기반.
+    HIGH/LOW 임계값을 분리 도출.
+    use_log_otsu_high=True: high_v를 log_otsu로 먼저 시도, 실패 시 percentile(high_pct) fallback.
     역전(high <= low) 또는 데이터 부족 시 hardcoded fallback.
     Returns ((high_val, high_method), (low_val, low_method)).
     """
@@ -324,17 +326,25 @@ def derive_high_low(
             (low_default,  "hardcoded(insufficient_n)"),
         )
 
-    high_v = float(np.percentile(finite, high_pct))
-    low_v  = float(np.percentile(finite, low_pct))
+    if use_log_otsu_high:
+        lo_val = _log_otsu(finite)
+        if lo_val is not None:
+            high_v, high_m = lo_val, "log_otsu"
+        else:
+            high_v, high_m = float(np.percentile(finite, high_pct)), f"p{high_pct}"
+    else:
+        high_v, high_m = float(np.percentile(finite, high_pct)), f"p{high_pct}"
+
+    low_v = float(np.percentile(finite, low_pct))
 
     if not (high_v > low_v):
-        # 상수에 가까운 분포 — hardcoded fallback
+        # 상수에 가까운 분포 또는 hi_pct <= lo_pct — hardcoded fallback
         return (
             (high_default, "hardcoded(degenerate)"),
             (low_default,  "hardcoded(degenerate)"),
         )
 
-    return (round(high_v, 4), f"p{high_pct}"), (round(low_v, 4), f"p{low_pct}")
+    return (round(high_v, 4), high_m), (round(low_v, 4), f"p{low_pct}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -944,16 +954,21 @@ def main() -> None:
 
     # ── HIGH/LOW 쌍 분리 도출 (derive_high_low 사용) ────────────────────────────
     # ASPECT_RATIO, SOLIDITY: DefectCharacterizer가 HIGH/LOW 모두 소비.
-    # 동일 ladder(valley/Otsu)로 도출 시 HIGH == LOW 동일값 버그 발생 → Percentile 분리.
+    # 동일 ladder(valley/Otsu)로 도출 시 HIGH == LOW 동일값 버그 발생 → 분리 도출.
+    # HIGH_ASPECT_RATIO: log_otsu로 bimodal split (p90=13.7 과보수 → 완화).
+    # HIGH_SOLIDITY: hi_pct=25로 compact_blob 하한 경계 근접 (p90=0.9804 과보수 → 완화).
     pair_specs = [
-        # (hi_name,           lo_name,          array,               hd_hi, hd_lo, hi_pct, lo_pct)
-        ("HIGH_ASPECT_RATIO", "LOW_ASPECT_RATIO", arr["aspect_ratio"], 5.0,   2.0,   90,     25),
-        ("HIGH_SOLIDITY",     "LOW_SOLIDITY",     arr["solidity"],     0.9,   0.7,   90,     25),
+        # (hi_name,           lo_name,          array,               hd_hi, hd_lo, hi_pct, lo_pct, use_log_otsu_high)
+        ("HIGH_ASPECT_RATIO", "LOW_ASPECT_RATIO", arr["aspect_ratio"], 5.0,   2.0,   90,     25,    True),
+        # log_otsu: bimodal AR 분포 (blob<5 / scratch>5)에서 자연 경계 도출. 실패 시 p90 fallback.
+        ("HIGH_SOLIDITY",     "LOW_SOLIDITY",     arr["solidity"],     0.9,   0.7,   25,      5,    False),
+        # hi_pct=25: p25 ≈ 0.91 (원래 하드코딩 0.9에 근접). compact_blob 하한 경계.
+        # lo_pct=5:  p5 ≈ 0.58 (degenerate 방지. LOW_SOLIDITY는 1.0.11 이후 분류에서 미사용).
     ]
 
     threshold_recs = {}
-    for hi_n, lo_n, data, hd_hi, hd_lo, hi_pct, lo_pct in pair_specs:
-        (hv, hm), (lv, lm) = derive_high_low(data, hd_hi, hd_lo, hi_pct, lo_pct)
+    for hi_n, lo_n, data, hd_hi, hd_lo, hi_pct, lo_pct, use_log_otsu_high in pair_specs:
+        (hv, hm), (lv, lm) = derive_high_low(data, hd_hi, hd_lo, hi_pct, lo_pct, use_log_otsu_high)
         threshold_recs[hi_n] = {"current": hd_hi, "recommended": hv, "method": hm, "derivable": True}
         threshold_recs[lo_n] = {"current": hd_lo, "recommended": lv, "method": lm, "derivable": True}
         print(f"  ✓ {hi_n:<26} {hd_hi!s:<7} → {hv!s:<9} [{hm}]")
