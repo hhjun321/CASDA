@@ -984,6 +984,7 @@ def compose_all(
     brightness_tolerance: float = 30.0,
     compositions_per_roi: int = 1,
     no_blend: bool = False,
+    no_compatibility: bool = False,
 ):
     """
     전체 합성 파이프라인 실행.
@@ -1211,13 +1212,16 @@ def compose_all(
         stem = filename.replace(".png", "")
         
         for comp_idx in range(compositions_per_roi):
-            bg_name = bg_pool.get_compatible_background(
-                defect_subtype=defect_subtype,
-                roi_x_center=roi_x_center,
-                target_brightness=target_brightness,
-                brightness_tolerance=brightness_tolerance,
-                rng=rng,
-            )
+            if no_compatibility:
+                bg_name = bg_pool.get_random_background(rng=rng)
+            else:
+                bg_name = bg_pool.get_compatible_background(
+                    defect_subtype=defect_subtype,
+                    roi_x_center=roi_x_center,
+                    target_brightness=target_brightness,
+                    brightness_tolerance=brightness_tolerance,
+                    rng=rng,
+                )
             
             if bg_name is None:
                 stats['fail_no_background'] += 1
@@ -1671,6 +1675,14 @@ def main():
              "출력 디렉토리를 casda_no_blend 등으로 변경 권장.",
     )
     parser.add_argument(
+        "--no-compatibility", action="store_true", default=False,
+        dest="no_compatibility",
+        help="Ablation (w/o Compatibility Matrix): 호환성 매트릭스를 무시하고 "
+             "배경을 완전 랜덤으로 선택한다. defect_subtype과 background_type "
+             "매칭 없이 임의의 clean 이미지를 선택. "
+             "출력 디렉토리를 casda_no_compat 등으로 변경 권장.",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default=None,
@@ -1745,6 +1757,7 @@ def main():
         brightness_tolerance=args.brightness_tolerance,
         compositions_per_roi=args.compositions_per_roi,
         no_blend=args.no_blend,
+        no_compatibility=args.no_compatibility,
     )
 
 

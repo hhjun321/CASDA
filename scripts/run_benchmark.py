@@ -113,6 +113,11 @@ GROUP_ALIASES = {
     "no_blending": "ablation_no_blending",
     "no_pruning": "ablation_no_pruning",
     "copypaste":  "copypaste",
+    # Review-2 ablation & generative baseline
+    "no_compat":      "ablation_no_compat",
+    "generic_prompt": "ablation_generic_prompt",
+    "1ch_hint":       "ablation_1ch_hint",
+    "vanilla_sd":     "baseline_vanilla_sd",
     # Special
     "all":       "__ALL__",
 }
@@ -621,6 +626,11 @@ _CASDA_GROUP_SUBDIRS = {
     "ablation_no_blending": "casda_no_blend",
     "ablation_no_pruning": "casda_composed",
     "copypaste": "copypaste_baseline",
+    # Review-2 ablation & generative baseline
+    "ablation_no_compat": "casda_no_compat",
+    "ablation_generic_prompt": "casda_generic_prompt",
+    "ablation_1ch_hint": "casda_1ch_hint",
+    "baseline_vanilla_sd": "casda_vanilla_sd",
 }
 
 
@@ -1557,6 +1567,8 @@ Examples:
         "casda_full", "casda_pruning", "casda_composed", "casda_composed_pruning",
         # Ablation study & CopyPaste baseline
         "ablation_no_blending", "ablation_no_pruning", "copypaste",
+        # Review-2 ablation & generative baseline
+        "ablation_no_compat", "ablation_generic_prompt", "ablation_1ch_hint", "baseline_vanilla_sd",
     }
     CASDA_GROUP_TO_SUBDIR = {
         "casda_full": "casda_full",
@@ -1567,6 +1579,11 @@ Examples:
         "ablation_no_blending": "casda_no_blend",
         "ablation_no_pruning": "casda_composed",
         "copypaste": "copypaste_baseline",
+        # Review-2: casda_dir_override 사용
+        "ablation_no_compat": "casda_no_compat",
+        "ablation_generic_prompt": "casda_generic_prompt",
+        "ablation_1ch_hint": "casda_1ch_hint",
+        "baseline_vanilla_sd": "casda_vanilla_sd",
     }
 
     # ratio 그룹도 CASDA 그룹으로 취급 (소스에 따라 casda_full 또는 casda_composed)

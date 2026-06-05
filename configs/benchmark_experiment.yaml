@@ -123,6 +123,59 @@ dataset_groups:
     casda_pruning:
       enabled: false  # 전체 사용 (ROI 수 통제)
 
+  # ── Review-2 Ablation Study (C7) + Generative Baseline (C5) ──
+  ablation_no_compat:
+    name: "CASDA-NoCompatMatrix"
+    description: "Ablation (C7): 호환성 매트릭스 제거 — 배경 완전 랜덤 선택"
+    use_original: true
+    augmentation: "none"
+    casda_data: "composed"
+    casda_dir_override: "data/augmented/casda_no_compat"
+    casda_pruning:
+      enabled: true
+      suitability_threshold: 0.0
+      top_k: 2500
+      stratified: true
+
+  ablation_generic_prompt:
+    name: "CASDA-GenericPrompt"
+    description: "Ablation (C7): Context-Aware Prompt 제거 — 범용 프롬프트 사용"
+    use_original: true
+    augmentation: "none"
+    casda_data: "composed"
+    casda_dir_override: "data/augmented/casda_generic_prompt"
+    casda_pruning:
+      enabled: true
+      suitability_threshold: 0.0
+      top_k: 2500
+      stratified: true
+
+  ablation_1ch_hint:
+    name: "CASDA-1chHint"
+    description: "Ablation (C7): 3채널 힌트 → 1채널(결함 마스크 R채널만) 사용"
+    use_original: true
+    augmentation: "none"
+    casda_data: "composed"
+    casda_dir_override: "data/augmented/casda_1ch_hint"
+    casda_pruning:
+      enabled: true
+      suitability_threshold: 0.0
+      top_k: 2500
+      stratified: true
+
+  baseline_vanilla_sd:
+    name: "Vanilla-SD"
+    description: "Baseline (C5+C7): ControlNet 없이 SD v1.5 text-to-image만 사용 (generative baseline + ControlNet conditioning ablation)"
+    use_original: true
+    augmentation: "none"
+    casda_data: "composed"
+    casda_dir_override: "data/augmented/casda_vanilla_sd"
+    casda_pruning:
+      enabled: true
+      suitability_threshold: 0.0
+      top_k: 2500
+      stratified: true
+
 # ----------------------------------------------------------------------------
 # 3 Benchmark Models
 # ----------------------------------------------------------------------------
