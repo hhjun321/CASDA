@@ -1,0 +1,28 @@
+#Comments and Suggestions for Authors
+The authors have made useful revisions, and several of my previous comments have been partially addressed. In particular, the manuscript now provides more implementation details, adds multi-seed results, includes FID/KID/LPIPS evaluation, clarifies data isolation, and removes the mixed discussion of detection and segmentation tasks. These changes have improved the manuscript.
+
+However, several of my previous comments have not been fully addressed and still require further revision.
+
+#Comment 1: Limited novelty
+
+The authors explain that the novelty lies in joint defect-background conditioning and clean image reuse. However, this is still mainly a conceptual explanation. The manuscript still needs stronger evidence to demonstrate that CASDA is more than an integration of existing techniques such as ROI extraction, ControlNet generation, prompt conditioning, Poisson blending, and quality filtering.
+
+#Comment 3: Heuristic thresholds and manually selected parameters
+
+The revised manuscript provides some explanations for the selected thresholds and weights, but these explanations remain largely qualitative. The defect classification thresholds, suitability-score weights, and quality-gate threshold still need stronger justification, such as distributional evidence, sensitivity analysis, or empirical comparison.
+
+#Comment 5: Insufficient baseline comparison
+
+This comment has not been fully addressed. The authors acknowledge the limitation but do not add additional generative or diffusion-based baselines. Comparing CASDA mainly with Raw and Copy-Paste is still insufficient to demonstrate the advantage of the proposed framework.
+
+#Comment 7: Incomplete ablation study
+
+This remains the most important unresolved issue. The authors removed the ablation study instead of adding component-level ablation. This does not address the concern. Since the claimed contribution depends on the compatibility matrix, three-channel hint image, prompt construction, quality gate, and ControlNet conditioning, at least a simplified ablation study should be provided to show the contribution of these key components.
+
+#Comment 9: Synthetic data quality validation
+
+The addition of FID/KID/LPIPS is helpful, but the validation is still not fully sufficient. Human perceptual evaluation, feature-distribution comparison, or mask-boundary validation would further strengthen the evidence, especially because some quality metrics do not clearly favor CASDA over Copy-Paste.
+
+#Comment 11: Overstated conclusions
+
+Although the wording has improved, some conclusions remain stronger than the evidence supports. Since the statistical tests are not significant and only two random seeds are used, terms such as “confirming” should be replaced with more cautious wording such as “suggesting” or “indicating under the tested settings.” The conclusion should also emphasize that CASDA’s effectiveness is architecture-dependent.
