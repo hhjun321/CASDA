@@ -164,9 +164,11 @@ def load_pipeline(args, device):
                 base_model = ref["base_model"]
                 logger.info(f"Using base model from pipeline_reference: {base_model}")
 
-        # 로컬 경로 여부에 따라 local_files_only 결정
-        # huggingface_hub 신버전이 절대경로를 repo ID로 검증하여 거부하는 문제 방지
-        is_local = Path(model_path).is_dir()
+        # 절대경로이면 로컬 파일로 취급 (is_dir() 대신 isabs() 사용)
+        # is_dir()은 경로가 존재하지 않으면 False를 반환하여 오탐이 발생하므로,
+        # 절대경로 여부로 판단. huggingface_hub 신버전의 repo ID 검증 오류 방지.
+        import os as _os
+        is_local = _os.path.isabs(model_path) or Path(model_path).is_dir()
 
         # fp16/fp32 모델 자동 감지 로드
         try:
