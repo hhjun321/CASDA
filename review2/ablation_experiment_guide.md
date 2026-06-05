@@ -14,23 +14,31 @@ Review-2 Comment 5 (baseline 비교 부족) + Comment 7 (ablation study 미비) 
 
 > `ablation_no_pruning`은 기존 `casda_composed` 데이터를 재사용. 신규 생성 불필요.
 
+## 스크립트별 실행 환경
+
+| 스크립트 | 환경 | 비고 |
+|---|---|---|
+| `test_controlnet.py` | **GPU** (CUDA) | ControlNet + SD v1.5 추론 |
+| `run_vanilla_sd.py` | **GPU** (CUDA) | SD v1.5 text-to-image 추론 |
+| `compose_casda_images.py` | **CPU** | Poisson Blending (OpenCV/PIL), `--workers`로 병렬화 |
+| `run_benchmark.py` | **GPU** (CUDA) | YOLO 모델 학습 |
+
 ---
 
 ## 환경 변수 (Colab 셀에서 먼저 실행)
 
 ```python
 import os
-SCRIPTS        = "/content/CASDA/scripts"
-CN_DATASET     = f"{os.environ['DRIVE']}/controlnet_dataset"
-AUG_IMAGES     = os.environ['AUG_IMAGES']          # 기존 CASDA 생성 디렉토리
-TRAIN_IMAGES   = os.environ['TRAIN_IMAGES']
-TRAIN_CSV      = os.environ['TRAIN_CSV']
-BEST_MODEL     = f"{os.environ['DRIVE']}/controlnet_training/final_model"
-BG_CACHE       = f"{os.environ['DRIVE']}/bg_cache.pkl"
-DRIVE          = os.environ['DRIVE']
+DRIVE = os.environ['DRIVE']
 
-ABL_BASE       = f"{DRIVE}/augmented_dataset_ablation"
-os.environ['ABL_BASE'] = ABL_BASE
+os.environ['SCRIPTS']     = "/content/CASDA/scripts"
+os.environ['CN_DATASET']  = f"{DRIVE}/controlnet_dataset"
+os.environ['BEST_MODEL']  = f"{DRIVE}/controlnet_training/final_model"
+os.environ['BG_CACHE']    = f"{DRIVE}/bg_cache.pkl"
+os.environ['ABL_BASE']    = f"{DRIVE}/augmented_dataset_ablation"
+
+# 아래는 기존 setup 셀에서 이미 os.environ에 등록됨 — 재확인용
+# AUG_IMAGES, TRAIN_IMAGES, TRAIN_CSV
 ```
 
 ---
@@ -40,7 +48,7 @@ os.environ['ABL_BASE'] = ABL_BASE
 기존 생성 결과(`$AUG_IMAGES/generated`)를 재사용. 재생성 불필요.
 
 ```python
-# compose — 호환성 매트릭스 무시, 완전 랜덤 배경 선택
+# [CPU] compose_casda_images.py — Poisson Blending, GPU 불필요
 !python $SCRIPTS/compose_casda_images.py \
     --generated-dir $AUG_IMAGES/generated \
     --hint-dir $CN_DATASET/hints \
@@ -63,9 +71,9 @@ os.environ['ABL_BASE'] = ABL_BASE
 ## Step 2: ablation_generic_prompt
 
 ```python
-GENERIC_AUG = f"{DRIVE}/augmented_images_generic_prompt"
+os.environ['GENERIC_AUG'] = f"{os.environ['DRIVE']}/augmented_images_generic_prompt"
 
-# 재생성 — generic prompt로 override
+# [GPU] test_controlnet.py — ControlNet + SD v1.5 추론, CUDA 필요
 !python $SCRIPTS/test_controlnet.py \
     --model_path $BEST_MODEL \
     --jsonl_path $CN_DATASET/train.jsonl \
@@ -77,7 +85,7 @@ GENERIC_AUG = f"{DRIVE}/augmented_images_generic_prompt"
     --num_images_per_class '{"1":2,"2":10,"3":1,"4":2}' \
     --seed 42
 
-# compose
+# [CPU] compose_casda_images.py — Poisson Blending, GPU 불필요
 !python $SCRIPTS/compose_casda_images.py \
     --generated-dir $GENERIC_AUG/generated \
     --hint-dir $CN_DATASET/hints \
@@ -96,9 +104,9 @@ GENERIC_AUG = f"{DRIVE}/augmented_images_generic_prompt"
 ## Step 3: ablation_1ch_hint
 
 ```python
-MASK_AUG = f"{DRIVE}/augmented_images_1ch_hint"
+os.environ['MASK_AUG'] = f"{os.environ['DRIVE']}/augmented_images_1ch_hint"
 
-# 재생성 — R채널 단독 힌트 (G/B=0)
+# [GPU] test_controlnet.py — ControlNet + SD v1.5 추론, CUDA 필요
 !python $SCRIPTS/test_controlnet.py \
     --model_path $BEST_MODEL \
     --jsonl_path $CN_DATASET/train.jsonl \
@@ -110,7 +118,7 @@ MASK_AUG = f"{DRIVE}/augmented_images_1ch_hint"
     --num_images_per_class '{"1":2,"2":10,"3":1,"4":2}' \
     --seed 42
 
-# compose
+# [CPU] compose_casda_images.py — Poisson Blending, GPU 불필요
 !python $SCRIPTS/compose_casda_images.py \
     --generated-dir $MASK_AUG/generated \
     --hint-dir $CN_DATASET/hints \
@@ -133,9 +141,9 @@ ControlNet 없이 SD v1.5 text-to-image만 사용.
 - **C7 관점**: ControlNet conditioning 컴포넌트 제거 ablation
 
 ```python
-VANILLA_AUG = f"{DRIVE}/vanilla_sd_images"
+os.environ['VANILLA_AUG'] = f"{os.environ['DRIVE']}/vanilla_sd_images"
 
-# 생성 — SD v1.5 단독 (ControlNet 없음)
+# [GPU] run_vanilla_sd.py — SD v1.5 text-to-image 추론, CUDA 필요 (ControlNet 없음)
 !python $SCRIPTS/run_vanilla_sd.py \
     --jsonl_path $CN_DATASET/train.jsonl \
     --output_dir $VANILLA_AUG \
@@ -144,7 +152,8 @@ VANILLA_AUG = f"{DRIVE}/vanilla_sd_images"
     --num_images_per_class '{"1":2,"2":10,"3":1,"4":2}' \
     --seed 42
 
-# compose — hint_dir는 기존 CN_DATASET/hints 참조 (마스크 추출용)
+# [CPU] compose_casda_images.py — Poisson Blending, GPU 불필요
+# hint_dir는 기존 CN_DATASET/hints 참조 (마스크 추출용)
 !python $SCRIPTS/compose_casda_images.py \
     --generated-dir $VANILLA_AUG/generated \
     --hint-dir $CN_DATASET/hints \
@@ -167,21 +176,17 @@ VANILLA_AUG = f"{DRIVE}/vanilla_sd_images"
 ## Step 5: 벤치마크 실행
 
 ```python
-CONFIG  = os.environ['CONFIG']
-LOCAL   = "/content/dataset_local/train_images"
-YOLO_DS = os.environ['YOLO_DATASETS']
-BENCH   = os.environ['BENCHMARK_RESULTS']
-
+# [GPU] run_benchmark.py — YOLO 모델 학습, CUDA 필요
 !python $SCRIPTS/run_benchmark.py \
     --config $CONFIG \
-    --data-dir $LOCAL \
+    --data-dir /content/dataset_local/train_images \
     --models yolo_mfd \
     --groups no_compat generic_prompt 1ch_hint vanilla_sd no_pruning \
     --casda-dir $ABL_BASE \
-    --yolo-dir $YOLO_DS \
-    --output-dir $BENCH \
+    --yolo-dir $YOLO_DATASETS \
+    --output-dir $BENCHMARK_RESULTS \
     --no-fid \
-    --reference-results $BENCH/benchmark_results.json
+    --reference-results $BENCHMARK_RESULTS/benchmark_results.json
 ```
 
 > `ablation_no_pruning`은 `casda_composed`를 재사용하므로 `--casda-dir`을 `$AUG_DATASET`으로 별도 지정하거나

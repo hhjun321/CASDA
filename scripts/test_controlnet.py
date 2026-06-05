@@ -143,6 +143,7 @@ def load_pipeline(args, device):
             args.pipeline_path,
             torch_dtype=torch.float32,
             safety_checker=None,
+            local_files_only=True,
         )
     else:
         # ControlNet 가중치 + SD base model 조합 (권장 방식)
@@ -163,11 +164,16 @@ def load_pipeline(args, device):
                 base_model = ref["base_model"]
                 logger.info(f"Using base model from pipeline_reference: {base_model}")
 
+        # 로컬 경로 여부에 따라 local_files_only 결정
+        # huggingface_hub 신버전이 절대경로를 repo ID로 검증하여 거부하는 문제 방지
+        is_local = Path(model_path).is_dir()
+
         # fp16/fp32 모델 자동 감지 로드
         try:
             controlnet = ControlNetModel.from_pretrained(
                 model_path,
                 torch_dtype=torch.float32,
+                local_files_only=is_local,
             )
         except Exception as e:
             logger.warning(f"Standard load failed ({e}), trying with safetensors...")
@@ -175,6 +181,7 @@ def load_pipeline(args, device):
                 model_path,
                 torch_dtype=torch.float32,
                 use_safetensors=True,
+                local_files_only=is_local,
             )
 
         logger.info(f"Loading base SD model: {base_model}")
