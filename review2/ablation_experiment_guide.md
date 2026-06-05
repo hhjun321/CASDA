@@ -32,8 +32,8 @@ import os
 DRIVE = os.environ['DRIVE']
 
 os.environ['SCRIPTS']     = "/content/CASDA/scripts"
-os.environ['CN_DATASET']  = f"{DRIVE}/controlnet_dataset"
-os.environ['BEST_MODEL']  = f"{DRIVE}/controlnet_training/final_model"
+os.environ['CN_DATASET']  = f"{DRIVE}/controlnet_dataset_v5.5"
+os.environ['BEST_MODEL']  = f"{DRIVE}/controlnet_training_v5.5/best_model"
 os.environ['BG_CACHE']    = f"{DRIVE}/bg_cache.pkl"
 os.environ['ABL_BASE']    = f"{DRIVE}/augmented_dataset_ablation"
 

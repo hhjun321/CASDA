@@ -179,6 +179,19 @@ def generate_from_jsonl(pipeline, args, device):
         # sample_name 결정 — test_controlnet.py와 동일한 로직
         sample_name = Path(hint_path_str).stem.replace("_hint", "")
 
+        # 이미 생성된 샘플 건너뜀 (중단 후 resume 지원)
+        existing = sorted(generated_dir.glob(f"{sample_name}_gen*.png"))
+        if existing:
+            results_summary.append({
+                "index": idx,
+                "sample_name": sample_name,
+                "prompt": prompt,
+                "hint_path": hint_path_str,
+                "original_available": False,
+                "num_generated": len(existing),
+            })
+            continue
+
         # 이미지 생성 (hint는 conditioning에 미사용)
         generated_images = generate_single(
             pipeline=pipeline,
