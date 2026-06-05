@@ -54,6 +54,14 @@ import re
 _CLASS_PATTERN = re.compile(r'class\s*(\d+)', re.IGNORECASE)
 
 
+def apply_mask_only_hint(hint_image: Image.Image) -> Image.Image:
+    """G/B 채널을 0으로 설정하여 R 채널(결함 마스크)만 남긴다."""
+    arr = np.array(hint_image.convert("RGB"))
+    arr[:, :, 1] = 0  # G=0
+    arr[:, :, 2] = 0  # B=0
+    return Image.fromarray(arr)
+
+
 # =============================================================================
 # Path Resolution (학습 스크립트와 동일)
 # =============================================================================
@@ -435,6 +443,14 @@ def generate_from_jsonl(pipeline, args, device):
             logger.warning(f"[{idx}] Hint not found: {hint_path_str}, skipping")
             continue
 
+        # Ablation: w/o Context-Aware Prompt
+        if args.generic_prompt:
+            prompt = args.generic_prompt
+
+        # Ablation: w/o 3-channel Hint (mask-only)
+        if args.mask_only_hint:
+            hint_image = apply_mask_only_hint(hint_image)
+
         # Original 이미지 로드 (비교용, 없으면 None)
         original_image = None
         try:
@@ -656,6 +672,21 @@ def parse_args():
     # Output
     parser.add_argument(
         "--output_dir", type=str, default="outputs/test_results",
+    )
+
+    # Ablation study flags
+    parser.add_argument(
+        "--generic-prompt", type=str, default=None,
+        dest="generic_prompt",
+        help="Ablation (w/o Context-Aware Prompt): 모든 샘플에 이 generic prompt를 사용. "
+             "train.jsonl의 개별 prompt를 무시하고 이 텍스트로 대체. "
+             "예: --generic-prompt 'Industrial steel surface defect on metal surface'",
+    )
+    parser.add_argument(
+        "--mask-only-hint", action="store_true", default=False,
+        dest="mask_only_hint",
+        help="Ablation (w/o 3-channel Hint): hint 이미지의 G/B 채널을 0으로 설정하고 "
+             "R 채널(결함 마스크)만 사용. ControlNet 모델은 그대로 사용.",
     )
 
     # Device
