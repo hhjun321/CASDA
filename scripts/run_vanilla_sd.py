@@ -55,9 +55,12 @@ def load_pipeline(args, device):
     model_name = args.pretrained_model_name_or_path
     logger.info(f"Loading SD v1.5 pipeline: {model_name}")
 
+    dtype = torch.float16 if device.type == "cuda" else torch.float32
+    logger.info(f"Inference dtype: {dtype} (device={device.type})")
+
     pipeline = StableDiffusionPipeline.from_pretrained(
         model_name,
-        torch_dtype=torch.float32,
+        torch_dtype=dtype,
         safety_checker=None,
     )
 
@@ -66,6 +69,11 @@ def load_pipeline(args, device):
     )
 
     pipeline = pipeline.to(device)
+
+    if dtype == torch.float16:
+        pipeline.vae.to(torch.float32)
+        logger.info("VAE kept in float32 for decode stability")
+
     pipeline.set_progress_bar_config(disable=True)
 
     if device.type == "cuda":
@@ -83,6 +91,18 @@ def load_pipeline(args, device):
 # Image Generation
 # =============================================================================
 
+def _postprocess_images(images, grayscale):
+    """생성 이미지 리스트에 후처리를 적용합니다.
+
+    grayscale=True이면 SD 1.5 VAE의 RGB 아티팩트를 제거하기 위해
+    grayscale 변환 후 RGB 3채널로 복제합니다.
+    배치 경로와 OOM fallback 경로에서 공통으로 사용합니다.
+    """
+    if not grayscale:
+        return list(images)
+    return [img.convert("L").convert("RGB") for img in images]
+
+
 def generate_single(
     pipeline, prompt, negative_prompt,
     num_inference_steps, guidance_scale, seed, device,
@@ -96,30 +116,42 @@ def generate_single(
         grayscale 변환 후 RGB 3채널로 복제. test_controlnet.py와 동일한 처리.
     """
     gen_h = gen_w = resolution
-    results = []
 
-    for i in range(num_images):
-        gen = torch.Generator(device=device).manual_seed(seed + i)
+    # seed+i 매핑 보존 — 배치/fallback 경로 모두 동일한 시드로 재현 가능
+    generators = [
+        torch.Generator(device=device).manual_seed(seed + i)
+        for i in range(num_images)
+    ]
 
-        with torch.autocast(str(device)):
+    common = dict(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        height=gen_h,
+        width=gen_w,
+        num_inference_steps=num_inference_steps,
+        guidance_scale=guidance_scale,
+    )
+
+    try:
+        with torch.autocast(str(device), enabled=(device.type == "cuda")):
             output = pipeline(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                height=gen_h,
-                width=gen_w,
-                num_inference_steps=num_inference_steps,
-                guidance_scale=guidance_scale,
-                generator=gen,
+                **common,
+                num_images_per_prompt=num_images,
+                generator=generators,
             )
+        images = output.images
+    except torch.cuda.OutOfMemoryError:
+        logger.warning(
+            f"Batch OOM (num_images={num_images}), falling back to per-image"
+        )
+        torch.cuda.empty_cache()
+        images = []
+        for g in generators:
+            with torch.autocast(str(device), enabled=(device.type == "cuda")):
+                out = pipeline(**common, num_images_per_prompt=1, generator=g)
+            images.append(out.images[0])
 
-        image = output.images[0]
-
-        if grayscale_postprocess:
-            image = image.convert("L").convert("RGB")
-
-        results.append(image)
-
-    return results
+    return _postprocess_images(images, grayscale_postprocess)
 
 
 # =============================================================================
@@ -181,7 +213,7 @@ def generate_from_jsonl(pipeline, args, device):
 
         # 이미 생성된 샘플 건너뜀 (중단 후 resume 지원)
         existing = sorted(generated_dir.glob(f"{sample_name}_gen*.png"))
-        if existing:
+        if len(existing) >= num_images:
             results_summary.append({
                 "index": idx,
                 "sample_name": sample_name,
