@@ -14,14 +14,26 @@ Review-2 Comment 5 (baseline 비교 부족) + Comment 7 (ablation study 미비) 
 
 > `ablation_no_pruning`은 기존 `casda_composed` 데이터를 재사용. 신규 생성 불필요.
 
+## 사전 준비
+
+ablation 실험 전 저장소를 최신 상태로 갱신합니다 (fp16 배치 추론 개선 코드 적용):
+
+```python
+!git -C /content/CASDA pull
+```
+
+---
+
 ## 스크립트별 실행 환경
 
-| 스크립트 | 환경 | 비고 |
-|---|---|---|
-| `test_controlnet.py` | **GPU** (CUDA) | ControlNet + SD v1.5 추론 |
-| `run_vanilla_sd.py` | **GPU** (CUDA) | SD v1.5 text-to-image 추론 |
-| `compose_casda_images.py` | **CPU** | Poisson Blending (OpenCV/PIL), `--workers`로 병렬화 |
-| `run_benchmark.py` | **GPU** (CUDA) | YOLO 모델 학습 |
+| 스크립트 | 환경 | 예상 소요 시간 | 비고 |
+|---|---|---|---|
+| `test_controlnet.py` | **GPU** (CUDA) | ~1시간 | ControlNet + SD v1.5 추론, fp16 자동 적용 |
+| `run_vanilla_sd.py` | **GPU** (CUDA) | ~1시간 | SD v1.5 text-to-image 추론, fp16 자동 적용 |
+| `compose_casda_images.py` | **CPU** | 10–20분 | Poisson Blending (OpenCV/PIL), `--workers`로 병렬화 |
+| `run_benchmark.py` | **GPU** (CUDA) | — | YOLO 모델 학습 |
+
+> **fp16 자동 적용**: `test_controlnet.py`와 `run_vanilla_sd.py`는 CUDA 환경에서 자동으로 fp16 로딩 + `num_images_per_prompt` 배치화를 적용합니다. CLI 인자 변경 없이 동작하며, VRAM OOM 발생 시 순차 fallback으로 자동 전환됩니다. VAE는 디코딩 안정성을 위해 fp32로 유지됩니다.
 
 ---
 
