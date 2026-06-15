@@ -70,6 +70,7 @@ Stage A (CPU) → Stage B (GPU) → Stage C (CPU) → Stage D (GPU)
 | [[07-Models]]            | YOLO-MFD, EB-YOLOv8, DeepLabV3+ | 모델 구조 파악·수정 시    |
 | [[08-Dataset-Groups]]    | Severstal, 7개 실험 그룹, 평가 지표      | 데이터셋·그룹 구성 파악 시  |
 | [[09-Experiments]]       | 완료된 실험 결과, 새 실험 템플릿             | 실험 기록·계획 시       |
+| [[13-Future-Research-Guide]] | 미래 연구 실험 로드맵 + 이론적 배경 정리   | 후속 연구 설계 시       |
 
 ## 완료된 실험
 
