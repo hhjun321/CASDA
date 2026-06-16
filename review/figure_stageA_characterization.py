@@ -41,7 +41,7 @@ ROI_META     = DRIVE_DATA / "roi_patches_v5.1/roi_metadata.csv"
 ROI_IMGS_DIR = DRIVE_DATA / "roi_patches_v5.1/images"
 
 OUT_DIR  = Path("/content/CASDA/review/figures")
-OUT_FILE = OUT_DIR / "stageA_characterization.jpg"
+OUT_FILE = OUT_DIR / "stageA_characterization.png"
 
 IMG_H, IMG_W = 256, 1600
 CROP_HALF    = 200   # ROI 중심 좌우 확장 px (crop 폭 = 400 px)
@@ -413,7 +413,7 @@ fig.legend(handles=legend_handles, loc='lower center',
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 plt.savefig(OUT_FILE, dpi=300, bbox_inches='tight',
             facecolor='white', edgecolor='none',
-            format='jpeg', pil_kwargs={'quality': 95, 'subsampling': 0})
+            format='png')
 print(f'\nSaved → {OUT_FILE}')
 plt.show()
 print('Done.')

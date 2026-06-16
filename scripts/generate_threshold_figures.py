@@ -22,6 +22,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib.ticker as mticker
 
 
 # ── 논문 분류 임계값 (defect_type 수식 기준) ────────────────────────────────
@@ -52,6 +53,14 @@ DATA_THRESHOLDS = {
     'solidity_irr':      0.75,
 }
 
+# ── hint 임계값에 대응하는 데이터 기반 도출값 ─────────────────────────────────
+HINT_DATA_MAP = {
+    'hint_linearity': 0.7012,   # λ Otsu boundary; identical comparison target as DATA_THRESHOLDS['linearity']
+}
+
+# 겹침 판단 기준: axis range의 2% 이내이면 시각적으로 구분 불가 → callout으로 대체
+OVERLAP_FRAC = 0.02
+
 SUBTYPE_COLORS = {
     'linear_scratch': '#2ecc71',
     'compact_blob':   '#3498db',
@@ -67,6 +76,39 @@ def _add_vline(ax, x, label, color, linestyle='-', alpha=0.85, ymax=0.92):
     y_pos = ylim[0] + (ylim[1] - ylim[0]) * ymax
     ax.text(x, y_pos, f' {label}', color=color, fontsize=7.5,
             rotation=90, va='top', ha='right', fontweight='bold')
+
+
+def _add_alignment_callout(ax, x, data_v, color, xlim, ymax_frac=0.68):
+    """Near-overlapping 쌍에 대해 두 값과 Δ를 callout box로 명시한다.
+
+    두 선을 겹쳐 그리는 대신 paper line 하나를 그리고,
+    데이터 기반 값과 차이를 옆에 주석으로 표시해 alignment를 명확히 전달한다.
+    """
+    x_range = xlim[1] - xlim[0]
+    ylim = ax.get_ylim()
+    y_ref = ylim[0] + (ylim[1] - ylim[0]) * ymax_frac
+    delta = abs(data_v - x)
+
+    # 선이 축 우측 절반에 있으면 박스를 왼쪽에, 아니면 오른쪽에 배치
+    mid = (xlim[0] + xlim[1]) / 2
+    if x > mid:
+        x_text = x - x_range * 0.04
+        ha = 'right'
+    else:
+        x_text = x + x_range * 0.04
+        ha = 'left'
+
+    ax.annotate(
+        f'≈ data: {data_v:.4f}\n(Δ={delta:.4f})',
+        xy=(x, y_ref),
+        xytext=(x_text, y_ref),
+        fontsize=6.5, color='#5d6d7e',
+        ha=ha, va='center',
+        arrowprops=dict(arrowstyle='-', color='#95a5a6', lw=0.8),
+        bbox=dict(boxstyle='round,pad=0.25', facecolor='white',
+                  edgecolor=color, alpha=0.88, linewidth=0.8),
+        zorder=8
+    )
 
 
 def fig3_morph_thresh(morph_csv: Path, output_dir: Path):
@@ -121,24 +163,41 @@ def fig3_morph_thresh(morph_csv: Path, output_dir: Path):
         ax.tick_params(labelsize=8)
         ax.grid(axis='y', alpha=0.3)
 
-        # 분류 임계값 (빨강/파랑)
+        # 분류 임계값 (빨강/파랑) + 데이터 기반 도출값 비교
         for key, ls in paper_keys:
             info = PAPER_THRESHOLDS[key]
             _add_vline(ax, info['value'], info['label'], info['color'], ls)
-            # 데이터 기반 도출값 보조선 (회색 점선)
-            if key in DATA_THRESHOLDS and abs(DATA_THRESHOLDS[key] - info['value']) > 0.01:
-                dv = DATA_THRESHOLDS[key]
-                ax.axvline(x=dv, color='#7f8c8d', linestyle=':', linewidth=1.2,
-                           alpha=0.7, zorder=4)
-                ax.text(dv, ax.get_ylim()[1] * 0.75,
-                        f' {dv:.3f}\n(data)', color='#7f8c8d',
-                        fontsize=6.0, rotation=90, va='top', ha='left')
 
-        # hint 생성 임계값 (보라색)
+            if key in DATA_THRESHOLDS:
+                dv = DATA_THRESHOLDS[key]
+                pv = info['value']
+                x_range = xlim[1] - xlim[0]
+
+                if abs(dv - pv) / x_range < OVERLAP_FRAC:
+                    # 시각적으로 겹치는 쌍 → callout annotation
+                    _add_alignment_callout(ax, pv, dv, info['color'], xlim)
+                else:
+                    # 잘 분리된 쌍 → 회색 점선
+                    ax.axvline(x=dv, color='#7f8c8d', linestyle=':', linewidth=1.2,
+                               alpha=0.7, zorder=4)
+                    ax.text(dv, ax.get_ylim()[1] * 0.75,
+                            f' {dv:.3f}\n(data)', color='#7f8c8d',
+                            fontsize=6.0, rotation=90, va='top', ha='left')
+
+        # hint 생성 임계값 (보라색) + 데이터 기반 도출값 비교
         for key, ls in hint_keys:
             info = HINT_THRESHOLDS[key]
             _add_vline(ax, info['value'], info['label'], info['color'], ls,
                        alpha=0.80, ymax=0.55)
+
+            if key in HINT_DATA_MAP:
+                dv = HINT_DATA_MAP[key]
+                pv = info['value']
+                x_range = xlim[1] - xlim[0]
+
+                if abs(dv - pv) / x_range < OVERLAP_FRAC:
+                    _add_alignment_callout(ax, pv, dv, info['color'], xlim,
+                                           ymax_frac=0.35)
 
     # 공통 범례
     handles = [mpatches.Patch(color=SUBTYPE_COLORS[s], alpha=0.75,
@@ -151,14 +210,14 @@ def fig3_morph_thresh(morph_csv: Path, output_dir: Path):
     purple_line = plt.Line2D([0], [0], color='#8e44ad', lw=1.8,
                               label='Hint generation threshold (R-ch)')
     grey_line   = plt.Line2D([0], [0], color='#7f8c8d', lw=1.2,
-                              linestyle=':', label='Data-driven value')
+                              linestyle=':', label='Data-driven value (visually separated)')
     fig.legend(handles=handles + [red_line, blue_line, purple_line, grey_line],
                loc='lower center', ncol=4, fontsize=8,
                bbox_to_anchor=(0.5, -0.10), frameon=True)
 
     plt.tight_layout()
     out_path = output_dir / 'fig3_morph_thresh_hist.png'
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f'Saved: {out_path}')
 
@@ -179,13 +238,15 @@ def fig4_variance_thresh(bg_csv: Path, output_dir: Path):
     ax.set_title('Background Variance Distribution\n'
                  'with variance_threshold (τ)', fontsize=11, fontweight='bold')
     ax.grid(axis='y', alpha=0.3)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+        lambda x, _: f'{int(x):,}' if x >= 10000 else f'{int(x)}'))
 
     info = PAPER_THRESHOLDS['variance']
     _add_vline(ax, info['value'], info['label'], info['color'])
 
     plt.tight_layout()
     out_path = output_dir / 'fig4_bg_variance_thresh_hist.png'
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f'Saved: {out_path}')
 
@@ -213,13 +274,15 @@ def fig5_edge_thresh(bg_csv: Path, output_dir: Path):
     ax.set_title('Background Edge Feature Distribution\n'
                  'with edge_threshold (ε)', fontsize=11, fontweight='bold')
     ax.grid(axis='y', alpha=0.3)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(
+        lambda x, _: f'{int(x):,}' if x >= 10000 else f'{int(x)}'))
 
     info = PAPER_THRESHOLDS['edge']
     _add_vline(ax, info['value'], info['label'], info['color'])
 
     plt.tight_layout()
     out_path = output_dir / 'fig5_bg_edge_thresh_hist.png'
-    plt.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
     plt.close()
     print(f'Saved: {out_path}')
 
@@ -253,4 +316,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # Colab/IPython 셀에서 직접 실행하면 sys.argv에 커널 런처 인수가 들어와
+    # argparse의 required 인수 파싱이 실패한다.
+    # 셀 실행 시에는 !python 명령어를 사용해야 한다.
+    _in_ipython = 'ipykernel' in sys.modules or 'google.colab' in sys.modules
+    if _in_ipython:
+        print(
+            '[ERROR] IPython/Colab 셀에서 직접 실행되었습니다.\n'
+            '아래 !python 명령어를 새 셀에서 실행하세요:\n\n'
+            '  !python $SCRIPTS/generate_threshold_figures.py \\\n'
+            '      --morph_csv  $ANALYSIS_DIR/morphological_features.csv \\\n'
+            '      --bg_csv     $ANALYSIS_DIR/background_features.csv \\\n'
+            '      --output_dir $ANALYSIS_DIR/figures'
+        )
+    else:
+        main()
